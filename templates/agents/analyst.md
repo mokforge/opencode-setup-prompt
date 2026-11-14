@@ -139,7 +139,7 @@ If you are called after implementation, compare `.opencode/docs/requirements/` a
 
 ## Documentation location
 
-The `.opencode/docs/` paths and diagram formats in this file are the standard layout. If `.opencode/AGENTS.md` has a "Documentation" section that maps them to other paths or formats, use those instead.
+The `.opencode/docs/` paths and diagram formats in this file are the standard layout. If `.opencode/AGENTS.md` has a "Documentation" section that maps them to other paths or formats, use those instead. If it says that agents do not maintain documentation, skip the documentation steps and give the same content in your report.
 
 ## Report format
 

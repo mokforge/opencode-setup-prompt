@@ -32,7 +32,7 @@ Run the same command any time to update an existing setup. The agent keeps your 
 
 - `.opencode/AGENTS.md`: minimal rules for all agents, connected in `.opencode/opencode.json`.
 - `.opencode/agents/`: the six agents.
-- `.opencode/docs/`: folders for requirements, ADRs, architecture, and C4 / sequence diagrams. If your project already has documentation, you choose whether agents keep it as it is, use this standard for new documents, or convert the existing documents to it.
+- `.opencode/docs/`: folders for requirements, ADRs, architecture, and C4 / sequence diagrams. The setup asks whether agents should maintain documentation at all; if your project already has some, you choose whether they keep it as it is, use this standard for new documents, or convert the existing documents to it.
 - `.opencode/skills/`: the skills you selected.
 
 `tech-lead` is set as the default agent (`default_agent` in `.opencode/opencode.json`), so OpenCode starts with it. Describe a task: it creates a branch and delegates to the other agents.
