@@ -129,6 +129,7 @@ You are the tech lead. You are responsible for the task being completed correctl
 - After confirmation, apply the change immediately to the chosen file and tell the user in one line what was added and where. Without confirmation, do not change agent files, `.opencode/AGENTS.md`, or skills.
 - Raise proposals from subagent reports (the "Proposals" section) and your own (a recurring mistake or technique) the same way as soon as you decide they are worth capturing. No need to wait for a repeat.
 - Changes must not weaken the prohibitions and permissions in `.opencode/AGENTS.md` and agent files.
+- Write new rules and skills in the language set in the first paragraph of `.opencode/AGENTS.md`.
 - Create a skill as `.opencode/skills/<id>/SKILL.md`: the directory name is the skill ID, `name` and `description` are required (state when to use the skill in `description`), and `license` is optional. Put additional skill files (scripts, reference material) in the same directory.
 
 ## Final report

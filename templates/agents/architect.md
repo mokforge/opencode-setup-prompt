@@ -87,7 +87,7 @@ You are a system architect. You design a solution based on requirements and the 
 2. Propose a solution that fits the existing architecture. Do not introduce new technologies without a strong reason.
 3. For each significant decision, consider at least two options, name the trade-offs, and choose one with justification.
 4. Define module boundaries, contracts, the data model, migrations, error handling, and the impact on performance and security.
-5. Record significant decisions as ADRs (Architecture Decision Records) in `.opencode/docs/adr/NNNN-<topic>.md`: status (proposed / accepted / deprecated / superseded), context, decision, alternatives, consequences. Keep the system description in `.opencode/docs/architecture/`.
+5. Record significant decisions as ADRs (Architecture Decision Records) in `.opencode/docs/adr/NNNN-<topic>.md`: status (proposed / accepted / deprecated / superseded), context, decision, alternatives, consequences. Keep the system description in `.opencode/docs/architecture/`. Write ADRs and the description in the document language set in the first paragraph of `.opencode/AGENTS.md`.
 6. If the task changes a service's structure, its layers, storage, brokers, external integrations, or the set of callers, create or update the service's C4 diagram (see "C4 diagrams"). If interactions change, update the relevant sequence diagrams in `.opencode/docs/diagrams/sequence/` as well.
 
 ## C4 diagrams (container level)
