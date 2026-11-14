@@ -21,10 +21,10 @@ The target project is the current working directory. All setup files described b
 
 ## General conditions
 
-- **Output language.** Use the language selected in Step 1 for generated project files and reports. The prompt itself stays in English. Do not translate file names, commands, code, paths, permission keys, or technical identifiers.
+- **Output language.** Use the language selected in "Language selection" for the dialog with the user, generated project files, and reports. The prompt itself stays in English. Do not translate file names, commands, code, paths, permission keys, or technical identifiers.
 - All setup and agent files are created strictly inside the `.opencode/` directory at the project root. Do not create or change anything outside it, except for the temporary clone of the setup repository, which must be removed afterward.
 - Agents directory: `.opencode/agents/`. Agent documentation directory: `.opencode/docs/` (subdirectories `requirements`, `adr`, `architecture`, `diagrams/c4`, `diagrams/sequence`). Skills directory: `.opencode/skills/`.
-- `.opencode/opencode.json` or `.opencode/opencode.jsonc` may already exist. If one exists, do not change its other settings (providers, models, permissions, MCP, etc.); only add the `.opencode/AGENTS.md` connection to `instructions`. If neither exists, create `.opencode/opencode.json` with `$schema` and `instructions`.
+- `.opencode/opencode.json` or `.opencode/opencode.jsonc` may already exist. If one exists, do not change its other settings (providers, models, permissions, MCP, etc.); only add the `.opencode/AGENTS.md` connection to `instructions` and set `default_agent` to `tech-lead` as described in Step 4. If neither exists, create `.opencode/opencode.json` with `$schema`, `instructions`, and `default_agent`.
 - Everything you write into the rules must be based on facts from the repository. Do not invent commands, paths, tools, or rules. If something cannot be determined, do not present a guess as fact: ask the user in Step 1. If there is no answer, omit the item or mark it as unconfirmed and mention it in the final report.
 - When in doubt, do not invent or guess: collect questions and ask them in Step 1 with answer options. Do not create files before the user answers.
 - Permissions are granted according to the role, but must not hinder everyday work. All roles may read code, search it, and run checks. Restrict only what genuinely belongs to another role (developer writes production code, tester writes tests) or is irreversible (destructive git commands, `push`, `commit` without a request). An agent that hits its restriction must not ask the user to do the work manually; it passes the request to another agent through tech-lead.
@@ -49,6 +49,14 @@ In update mode:
 4. Do not create copies: changes are visible in `git diff`. Nothing is lost: anything removed from one file must end up in another file. If a file you are about to change has uncommitted user edits, report this before writing and ask how to proceed.
 5. Ask all questions (disputed moves, broader permissions, user sections, skill conflicts) in Step 1 with options. Before writing, show a summary of changes per file (added, moved, replaced) and wait for confirmation.
 
+## Language selection (first question)
+
+This is the first thing the user sees. Resolve the setup source and the working mode silently first (they need no answers), then ask only this one question, before the study in Step 0 and before any other question. Ask it in English and Russian at once, with choices if a question tool is available: English (default, recommended), Russian, or a custom answer. In update mode, first read the language already used in the existing `.opencode/AGENTS.md` and agent files (the first paragraph of `AGENTS.md`, or the prose of the files if it is missing), offer "keep the current language (<name>)" as the recommended option, and if there is no answer keep the current language instead of switching to English. In creation mode, if there is no answer, use English and note the default in the report.
+
+From the moment the answer arrives, conduct the whole dialog in the selected language: progress remarks during Step 0, every question in Step 1 (including the answer options), the change summary and the duplicate list shown for confirmation, error messages, and the final report. Do not switch back to English between steps. Code, commands, paths, permission keys, and identifiers stay unchanged. If the user later writes in another language or asks to change the language, ask once whether to switch and apply the answer to the rest of the dialog and to files not yet written.
+
+If the user picks a different language than the existing setup uses (update mode), translate only the text that comes from the templates; translate the user's own content (custom rules, the contents of `## Project rules`) only if the user explicitly asks, and list what was translated in the report.
+
 ## Step 0. Study the project (read-only)
 
 Study the project the way a new tech lead would on their first day. Read real files instead of guessing from names. You may run any commands that do not change the project state (`git log`, `git branch -a`, `ls`, `<tool> --version`, `--help`, collecting a test list without running it) to confirm facts. Support every claim about the project with a file you have read: do not say a module is responsible for behavior until you have found the file that implements it, and do not draw conclusions about the whole project from one subsystem. For the key scenario, trace the real execution path from the entry point to storage. Determine the following.
@@ -69,11 +77,10 @@ Record your findings for each item together with the supporting files and confid
 
 ## Step 1. Clarifications
 
-Do not invent anything or make decisions for the user. Collect all questions left after the study into one request (using the question tool with choices if available, otherwise one message). Ask the language and skill questions first, then the project questions.
+Do not invent anything or make decisions for the user. Collect all questions left after the study into one request (using the question tool with choices if available, otherwise one message). The language was already chosen in "Language selection": ask every question in that language. Ask the skill question first, then the project questions.
 
-1. **Output language.** Ask which language to use for generated files and reports: English (default, recommended) or Russian. Allow a custom answer. If there is no answer, use English and note the default in the report. In update mode, first read the language already used in the existing `.opencode/AGENTS.md` and agent files (the first paragraph of `AGENTS.md`, or the prose of the files if it is missing). Ask the question again, offer "keep the current language (<name>)" as the recommended option, and if there is no answer keep the current language instead of switching to English. If the user picks a different language, translate only the text that comes from the templates; translate the user's own content (custom rules, the contents of `## Project rules`) only if the user explicitly asks, and list what was translated in the report.
-2. **Skills.** Present the catalog discovered in Step 0 as a table with ID (the directory name, which must equal the `name` in the frontmatter), description, and whether the skill matches the detected stack. Ask which skills to install: install the relevant skills (recommended), install all available, install none, or select specific skills. Allow a custom answer with a list of IDs; accept only IDs present in the catalog and ask again about any unknown ID instead of guessing or skipping it. If no skills are available, say so and skip installation. In update mode, add a column with the state of each catalog skill in `.opencode/skills/`: not installed, installed and identical, or installed and different (and say which side is newer if git history shows it). Skills in `.opencode/skills/` that are not in the catalog belong to the user: never touch, list, or offer to replace them, and mention them in the report. If a selected skill already exists in `.opencode/skills/`, include a follow-up question for each conflict: replace, keep the existing version, or merge (merge only if the user asks explicitly; otherwise never overwrite silently).
-3. **Project questions.** These may include: competing approaches or conflicting commands, a non-obvious base branch or branch naming scheme, an unclear service composition, a skills directory path if the installed OpenCode version uses another path, and conflicts with existing files (check in advance which files from Steps 3-6 already exist).
+1. **Skills.** Present the catalog discovered in Step 0 as a table with ID (the directory name, which must equal the `name` in the frontmatter), description, and whether the skill matches the detected stack. Ask which skills to install: install the relevant skills (recommended), install all available, install none, or select specific skills. Allow a custom answer with a list of IDs; accept only IDs present in the catalog and ask again about any unknown ID instead of guessing or skipping it. If no skills are available, say so and skip installation. In update mode, add a column with the state of each catalog skill in `.opencode/skills/`: not installed, installed and identical, or installed and different (and say which side is newer if git history shows it). Skills in `.opencode/skills/` that are not in the catalog belong to the user: never touch, list, or offer to replace them, and mention them in the report. If a selected skill already exists in `.opencode/skills/`, include a follow-up question for each conflict: replace, keep the existing version, or merge (merge only if the user asks explicitly; otherwise never overwrite silently).
+2. **Project questions.** These may include: competing approaches or conflicting commands, a non-obvious base branch or branch naming scheme, an unclear service composition, a skills directory path if the installed OpenCode version uses another path, and conflicts with existing files (check in advance which files from Steps 3-6 already exist).
 
 Give each question 2-4 options found in the repository (with supporting files), mark the recommended one, and leave room for a custom answer. Do not ask what can be determined from code. Wait for the answer, then proceed to Step 2. Record the user's answers as confirmed.
 
@@ -130,9 +137,9 @@ Approach, layers, allowed dependency direction, location of key elements. Prohib
 - If you notice a recurring mistake or technique that should be captured, add a "Proposals" section to the report (a rule or skill, one or two lines). Do not add rules or skills yourself: the user decides through `tech-lead`.
 ```
 
-Copy it to `.opencode/AGENTS.md`, replace the generic descriptions with facts from Step 0, and remove any section without confirmed data. In the first paragraph, write the language selected in Step 1 by name (`English` above is the default): agents run in later sessions and do not know what was chosen during setup, so never write "selected during setup" or similar. Agents read this line to decide the language of their reports and documents. The template does not describe the pipeline or other roles: only `tech-lead` knows them.
+Copy it to `.opencode/AGENTS.md`, replace the generic descriptions with facts from Step 0, and remove any section without confirmed data. In the first paragraph, write the language selected in "Language selection" by name (`English` above is the default): agents run in later sessions and do not know what was chosen during setup, so never write "selected during setup" or similar. Agents read this line to decide the language of their reports and documents. The template does not describe the pipeline or other roles: only `tech-lead` knows them.
 
-Formulate rules as short verifiable statements, one per line. If you find discrepancies between the code and the identified approach, do not "fix" the code: record the rule for the target approach (if it is obvious) and note the discrepancies in the final report. If a language other than English was selected in Step 1, translate this template and all generated content into that language, keeping code, commands, paths, and identifiers unchanged.
+Formulate rules as short verifiable statements, one per line. If you find discrepancies between the code and the identified approach, do not "fix" the code: record the rule for the target approach (if it is obvious) and note the discrepancies in the final report. If a language other than English was selected in "Language selection", translate this template and all generated content into that language, keeping code, commands, paths, and identifiers unchanged.
 
 ## Step 4. Connect the rules in `.opencode/opencode.json` or `.opencode/opencode.jsonc`
 
@@ -142,6 +149,7 @@ Read the chosen file and make the minimal change:
 
 - If the `instructions` key is missing, add `"instructions": [".opencode/AGENTS.md"]`.
 - If `instructions` already exists, add `.opencode/AGENTS.md` to the array if it is not already there. Do not change or reorder existing elements.
+- Make `tech-lead` the agent that OpenCode starts with. If the `default_agent` key is missing, add `"default_agent": "tech-lead"`. If it is already `"tech-lead"`, do nothing. If it is set to another agent, do not overwrite it silently: ask the user (in the selected language) whether to replace it with `tech-lead` (recommended) or keep the current value, and record the answer in the report. Also check the project's root `opencode.json` or `opencode.jsonc` (if any) for `default_agent`, because it may override this file: if it sets another agent, tell the user and ask, but do not edit the root file; the setup changes files only inside `.opencode/`. `tech-lead` is a primary agent (`mode: primary` in its file), which `default_agent` requires.
 - Leave all other keys, values, order, comments, and formatting unchanged. Make the change precisely (with an editing tool), not by rewriting the whole file.
 - If the file was missing and you created it, note this in the final report.
 
@@ -159,7 +167,7 @@ cp -R "<setup root>/skills/<id>/." ".opencode/skills/<id>/"
 ```
 
 - The skill must keep its structure: `.opencode/skills/<id>/SKILL.md` and any supporting files.
-- Copy skill files as-is; do not translate or edit their contents during installation. Generated rules and reports follow the language selected in Step 1, while installed skills keep the language they were published in. If a skill already exists, follow the conflict answer from Step 1. When replacing, start from a clean `.opencode/skills/<id>/` directory so files removed from the source do not remain.
+- Copy skill files as-is; do not translate or edit their contents during installation. Generated rules and reports follow the language selected in "Language selection", while installed skills keep the language they were published in. If a skill already exists, follow the conflict answer from Step 1. When replacing, start from a clean `.opencode/skills/<id>/` directory so files removed from the source do not remain.
 - If no skills are selected and `.opencode/skills/` is empty, create `.opencode/skills/.gitkeep` so the directory is kept in git. Do not create it when the directory already contains skills.
 - Current OpenCode V2 reads `.opencode/skills/`. Verify the path against the installed version's documentation; if it uses another path (for example, the older `.opencode/skill/`), use that path and note it in the report.
 
@@ -197,7 +205,7 @@ Each agent file ends with a `## Project rules` section containing the project da
 - reviewer: project checklist items that are not in `.opencode/AGENTS.md`: conventions, migration, test, and security requirements, mandatory CI checks. Layer boundaries and dependency directions are checked against the "Architecture" section of `.opencode/AGENTS.md` and are not copied here.
 - tester: framework, test location and naming, fixtures, testing levels, how to run a single test, coverage requirements.
 
-If a language other than English was selected in Step 1, translate all templates and generated text into that language, including section headings such as `## Project rules`, `## Documentation updates`, and `## Learning`; keep frontmatter keys, permission keys, code, commands, paths, and identifiers unchanged.
+If a language other than English was selected in "Language selection", translate all templates and generated text into that language, including section headings such as `## Project rules`, `## Documentation updates`, and `## Learning`; keep frontmatter keys, permission keys, code, commands, paths, and identifiers unchanged.
 
 ## Step 7. Find and remove duplicates
 
@@ -216,7 +224,7 @@ This runs after Step 6, when the templates have already been merged with the use
 
 ## Step 8. Verification
 
-1. Make sure all six agent files exist in `.opencode/agents/`, along with `.opencode/AGENTS.md` and the `.opencode/docs/*` directories, and that `.opencode/opencode.json` or `.opencode/opencode.jsonc` was changed only by adding `.opencode/AGENTS.md` to `instructions` (check the diff before and after).
+1. Make sure all six agent files exist in `.opencode/agents/`, along with `.opencode/AGENTS.md` and the `.opencode/docs/*` directories, and that `.opencode/opencode.json` or `.opencode/opencode.jsonc` was changed only by adding `.opencode/AGENTS.md` to `instructions` and, if the user did not decline, `"default_agent": "tech-lead"` (check the diff before and after).
 2. Verify that all agents' frontmatter is correct (three dashes, valid YAML, `mode: primary` only for `tech-lead`, `description` in double quotes so colons inside do not break parsing).
 3. Verify that `.opencode/AGENTS.md` and the agents have no placeholders or service comments like `# here ...`, `...`, `{...}`, `<...>` (except what the role templates contain on purpose: `<topic>`, `NNNN`, `<ServiceName>`, `<ProcessName>`, `<id>`, `<file>` in file-name templates, paths, and commands, and PlantUML syntax such as `!include <C4/C4_Container>`, `!include <C4/C4_Component>`, and `<<external system>>`; do not remove these).
 4. Verify that all commands in `.opencode/AGENTS.md` and agent permissions actually exist in the project configs.
@@ -232,16 +240,16 @@ This runs after Step 6, when the templates have already been merged with the use
 14. Verify learning: `tech-lead.md` has a learning section (the localized equivalent of `## Learning`; changes are applied directly to agent files, `.opencode/AGENTS.md`, and skills after user confirmation, without intermediate files); the tech-lead final report has an item about rule and skill changes; `.opencode/AGENTS.md` has a rule about a proposals section; `.opencode/skills/` exists with installed skills or a `.gitkeep` file.
 15. Verify duplicates: no repeated project rules, conflicting wording, or duplicate permission rules within one agent remain, or they were raised to the user; cross-agent permission arrays are intentionally independent and are not duplicate findings. Removed repetitions are shown in the summary.
 16. Verify skills: every selected skill exists at `.opencode/skills/<id>/SKILL.md`, its files match the source directory (except where the user answered "keep the existing version"), and this run installed no unselected skill; skills that were already in `.opencode/skills/` before the run are unchanged unless the user chose to replace them. If no skills were selected and the directory is empty, `.opencode/skills/.gitkeep` exists.
-17. Verify language: all generated prose (`.opencode/AGENTS.md`, agent files, reports) is in the language selected in Step 1; code, commands, paths, permission keys, and identifiers are unchanged. The first paragraph of `.opencode/AGENTS.md` names the concrete language, and no generated file contains setup-time wording such as "selected during setup" or "selected output language" (or its translation).
+17. Verify language: all generated prose (`.opencode/AGENTS.md`, agent files, reports) is in the language selected in "Language selection"; code, commands, paths, permission keys, and identifiers are unchanged. The first paragraph of `.opencode/AGENTS.md` names the concrete language, and no generated file contains setup-time wording such as "selected during setup" or "selected output language" (or its translation).
 18. In update mode, verify that all project data and user rules from the old files are found in the new files; the change summary was shown to the user.
 19. Verify templates: every generated agent contains a complete `permissions` array copied or adjusted from its role template; no template markers or comments remain.
 
 ## Step 9. Final report
 
-Answer the user briefly, in the language selected in Step 1:
+Answer the user briefly, in the language selected in "Language selection":
 
 - Working mode (creation or update).
-- Output language (the user's choice or the English default).
+- Output language (the user's choice, the kept current language, or the English default).
 - Which files were created, changed, or skipped (and why); for an update, what was added, moved, or replaced, per file, and what was deliberately left untouched (user content, existing skills, `.opencode/docs/`).
 - For an update: the language kept or changed (and what was translated), the state of each catalog skill before and after (installed, kept, replaced, skipped), the questions asked and the answers, and the permissions that were broader than the template and kept by the user's decision.
 - What you learned about the project: purpose, stack, architectural approach, methodology, main tools (3-7 lines).
@@ -259,7 +267,7 @@ Answer the user briefly, in the language selected in Step 1:
 
 ## Limitations
 
-- Do not change the project's source code, build configs, or dependencies. Only files inside `.opencode/` are created or changed: `.opencode/AGENTS.md`, agent files in `.opencode/agents/`, `.opencode/docs/` directories (including `diagrams/c4` and `diagrams/sequence`) with `.gitkeep`, selected skills in `.opencode/skills/`, and only the `instructions` element in `.opencode/opencode.json`.
+- Do not change the project's source code, build configs, or dependencies. Only files inside `.opencode/` are created or changed: `.opencode/AGENTS.md`, agent files in `.opencode/agents/`, `.opencode/docs/` directories (including `diagrams/c4` and `diagrams/sequence`) with `.gitkeep`, selected skills in `.opencode/skills/`, and only the `instructions` and `default_agent` elements in `.opencode/opencode.json`.
 - Do not commit and do not create branches as part of the setup itself: the branch rule applies to the agents' future work.
 - Do not invent commands, paths, or rules: take them from the repository or ask.
 - Do not overwrite existing files: merge them according to Step 2 or the update-mode rules.

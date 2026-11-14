@@ -35,7 +35,7 @@ Run the same command any time to update an existing setup. The agent keeps your 
 - `.opencode/docs/`: folders for requirements, ADRs, architecture, and C4 / sequence diagrams.
 - `.opencode/skills/`: the skills you selected.
 
-Switch to `tech-lead` (Tab) and describe a task: it creates a branch and delegates to the other agents.
+`tech-lead` is set as the default agent (`default_agent` in `.opencode/opencode.json`), so OpenCode starts with it. Describe a task: it creates a branch and delegates to the other agents.
 
 ## Requirements
 
