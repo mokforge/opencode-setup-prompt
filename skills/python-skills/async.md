@@ -37,7 +37,8 @@ async def with_timeout() -> str:
         async with asyncio.timeout(5):             # Python 3.11+, otherwise asyncio.wait_for
             return await fetch(url)
     except TimeoutError:
-        ...                                        # handling and logging
+        # log the timeout and return a fallback
+        return ""
 ```
 
 - Do not swallow `asyncio.CancelledError`. If you catch it for cleanup, perform the cleanup and re-raise it (`raise`). Do not catch `BaseException` wholesale.

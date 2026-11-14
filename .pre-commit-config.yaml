@@ -4,8 +4,31 @@ repos:
     rev: v6.0.0
     hooks:
       - id: check-yaml
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: check-added-large-files
       - id: end-of-file-fixer
       - id: trailing-whitespace
+  - repo: local
+    hooks:
+      - id: skill-frontmatter
+        name: skill frontmatter has name and description
+        entry: '\A---\r?\n(?=[\s\S]*?^name:[ \t]*\S[^\r\n]*$)(?=[\s\S]*?^description:[ \t]*\S[^\r\n]*$)[\s\S]*?^---[ \t]*$'
+        language: pygrep
+        files: ^skills/[^/]+/SKILL\.md$
+        args: [--multiline, --negate]
+      - id: no-placeholders
+        name: no placeholders in templates and skills
+        entry: '(# here|\bTODO\b|^\s*\.\.\.\s*$)'
+        language: pygrep
+        files: ^(templates|skills)/
+        types: [text]
+      - id: only-tech-lead-primary
+        name: only tech-lead template is primary
+        entry: '^mode:[ \t]*primary[ \t]*$'
+        language: pygrep
+        files: ^templates/agents/.*\.md$
+        exclude: ^templates/agents/tech-lead\.md$
   - repo: https://github.com/DavidAnson/markdownlint-cli2
     rev: v0.24.1
     hooks:
@@ -22,4 +45,3 @@ repos:
         name: prettier (check Markdown)
         entry: prettier --check --ignore-unknown
         types: [markdown]
-        exclude: ^opencode-setup-prompt\.md$

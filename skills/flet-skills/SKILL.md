@@ -1,6 +1,6 @@
 ---
 name: flet-skills
-description: "Designing, implementing, reviewing, and testing Flet 1.0 applications: declarative screens, state ownership, navigation, dialogs, responsive layout, assets, and flet.testing."
+description: "Flet 1.0 application development: declarative UI, state ownership, navigation, dialogs, responsive layout, assets, and flet.testing. Use when building, reviewing, debugging, or testing a Flet app."
 license: MIT
 compatibility: opencode
 metadata:

@@ -36,7 +36,7 @@ https://raw.githubusercontent.com/mokforge/opencode-setup-prompt/main/opencode-s
 2. It asks for the **output language**: English (default) or Russian. All generated rules, agents, and reports use the chosen language. The prompt itself stays in English.
 3. It scans `skills/` and offers the **available skills**, marking the ones relevant to the detected stack. You can install the relevant skills, all skills, none, or a selection.
 4. It asks the remaining questions in one pass, with suggested answers.
-5. It creates `.opencode/AGENTS.md`, six agents in `.opencode/agents/`, the documentation directories, installs the selected skills, and connects the rules in `.opencode/opencode.json`.
+5. It creates `.opencode/AGENTS.md`, six agents in `.opencode/agents/`, the documentation directories, installs the selected skills, and connects the rules in `.opencode/opencode.json` or `.opencode/opencode.jsonc`.
 
 Nothing is committed or pushed. All changes stay in `.opencode/` and are visible in `git status` / `git diff`.
 
@@ -59,7 +59,7 @@ To add a skill, follow [CONTRIBUTING.md](CONTRIBUTING.md). The directory name be
 ```text
 .opencode/
 ├── AGENTS.md
-├── opencode.json          # only the instructions key is added
+├── opencode.json(c)       # instructions key added
 ├── agents/
 │   ├── tech-lead.md
 │   ├── analyst.md
@@ -81,13 +81,21 @@ To add a skill, follow [CONTRIBUTING.md](CONTRIBUTING.md). The directory name be
 - OpenCode V2 (tested with 2.3.0) with a configured provider and model.
 - A git repository.
 - Network access to GitHub for the agent, or a local clone of this repository.
-- `.opencode/opencode.json` in the project. If it is missing, the prompt creates a minimal one.
+- `.opencode/opencode.json` or `.opencode/opencode.jsonc` in the project. If neither exists, the prompt creates a minimal `opencode.json`.
 
 ## Repository layout
 
 ```text
 .
 ├── opencode-setup-prompt.md   # the setup prompt
+├── templates/
+│   └── agents/
+│       ├── tech-lead.md
+│       ├── analyst.md
+│       ├── architect.md
+│       ├── developer.md
+│       ├── reviewer.md
+│       └── tester.md
 ├── skills/
 │   └── <skill-id>/
 │       ├── SKILL.md           # entry point
@@ -111,7 +119,7 @@ pre-commit install
 pre-commit run --all-files
 ```
 
-The hooks run `markdownlint-cli2`, `yamllint`, Prettier in check mode, and basic YAML/whitespace checks. The setup prompt is excluded from Prettier because it contains nested Markdown templates with four-backtick fences. The pull request template stays intentionally short; it covers only the checks that cannot be automated, such as whether a skill description explains when to use it.
+The hooks run `markdownlint-cli2`, `yamllint`, Prettier in check mode, basic YAML/whitespace checks, merge-conflict/case-conflict/large-file checks, and local `pygrep` checks for skill frontmatter, placeholders, and the primary agent. The same checks cover the prompt, templates, skills, and repository documentation. The pull request template stays intentionally short; it covers only the checks that cannot be automated, such as whether a skill description explains when to use it.
 
 ## Licensing
 

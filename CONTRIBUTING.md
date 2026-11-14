@@ -28,6 +28,10 @@ skills/<skill-id>/
 3. Update `README.md` only if the repository-level description or usage changes.
 4. Check the skill locally before committing.
 
+## Templates
+
+- `templates/agents/*.md` contains the six role templates. Each holds its own complete `permissions` array, so permissions can be edited independently per agent.
+
 ## Automated checks
 
 Install the hooks once, then run them before a commit:
@@ -37,21 +41,22 @@ pre-commit install
 pre-commit run --all-files
 ```
 
-The hooks run `markdownlint-cli2`, `yamllint`, Prettier in check mode, and basic YAML/whitespace checks. Prettier skips `opencode-setup-prompt.md` because it contains nested Markdown templates.
+The hooks run `markdownlint-cli2`, `yamllint`, Prettier in check mode, basic YAML/whitespace checks, merge-conflict/case-conflict/large-file checks, and local `pygrep` checks for skill frontmatter, placeholders, and the primary agent.
 
 ## Manual checks
 
 Run these checks before a commit:
 
-- Frontmatter is valid YAML, starts on the first line, and contains non-empty `name` and `description`.
+- Frontmatter parses as YAML, starts on the first line, and contains non-empty `name` and `description`.
 - The directory name and skill ID are unique under `skills/`.
 - Every file referenced from `SKILL.md` exists.
 - Markdown code fences are balanced.
-- The skill contains no placeholder text or unfinished sections.
 - Commands and paths are either real for the target project or clearly marked as examples.
+- The `description` explains when the skill applies, not only what it contains.
 - The skill is written in English unless it is intentionally project-specific.
 - The skill can be distributed under the repository's MIT license.
 - The skill installs as `.opencode/skills/<skill-id>/` and its `SKILL.md` stays at the directory root.
+- Agent templates contain a complete permissions array and can be edited independently per role.
 
 ## Commits
 
