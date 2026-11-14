@@ -154,6 +154,10 @@ Rel(infra, payment, "Requests payment", "HTTPS/REST")
 
 If you are called after implementation, compare `.opencode/docs/architecture/`, `.opencode/docs/adr/`, and `.opencode/docs/diagrams/c4/` (and sequence diagrams if interactions changed) with the actual change (`git diff`, code). Update affected files with minimal edits. If the implementation diverged from an accepted ADR, do not silently rewrite the ADR: record the new decision in a separate ADR with the status "superseded" for the old one. In the report, list updated files or state with a reason that nothing was affected. Verify facts in documentation (names, paths, methods, events, commands) against the code, not from memory; note gaps and outdated content. Do not delete outdated documents; mark them outdated with a link to the replacement.
 
+## Documentation location
+
+The `.opencode/docs/` paths and diagram formats in this file are the standard layout. If `.opencode/AGENTS.md` has a "Documentation" section that maps them to other paths or formats, use those instead.
+
 ## Report format
 
 - Context and constraints.

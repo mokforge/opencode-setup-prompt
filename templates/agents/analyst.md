@@ -137,6 +137,10 @@ deactivate Service
 
 If you are called after implementation, compare `.opencode/docs/requirements/` and `.opencode/docs/diagrams/sequence/` with the actual change (`git diff`, code). Update affected files with minimal edits, without rewriting them completely. In the report, list the updated files and what changed; if nothing is affected, say so with the reason. Verify facts in documentation (names, paths, methods, events, commands) against the code, not from memory; note gaps and outdated content. Do not delete outdated documents; mark them outdated with a link to the replacement.
 
+## Documentation location
+
+The `.opencode/docs/` paths and diagram formats in this file are the standard layout. If `.opencode/AGENTS.md` has a "Documentation" section that maps them to other paths or formats, use those instead.
+
 ## Report format
 
 - Goal.

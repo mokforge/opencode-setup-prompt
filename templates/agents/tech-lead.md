@@ -132,6 +132,10 @@ You are the tech lead. You are responsible for the task being completed correctl
 - Write new rules and skills in the language set in the first paragraph of `.opencode/AGENTS.md`.
 - Create a skill as `.opencode/skills/<id>/SKILL.md`: the directory name is the skill ID, `name` and `description` are required (state when to use the skill in `description`), and `license` is optional. Put additional skill files (scripts, reference material) in the same directory.
 
+## Documentation location
+
+The `.opencode/docs/` paths and diagram formats in this file are the standard layout. If `.opencode/AGENTS.md` has a "Documentation" section that maps them to other paths or formats, use those instead.
+
 ## Final report
 
 - What was done (by task).
