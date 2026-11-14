@@ -1,7 +1,8 @@
 # Contributing
 
-This repository contains an OpenCode setup prompt and reusable skills.
-Documentation and skills are written in English.
+This repository contains an OpenCode setup prompt, agent templates, and reusable skills.
+Everything in it can be changed by contributors under the same rules: skills, agent templates, the prompt, documentation, and repository configuration.
+Documentation, the prompt, templates, and skills are written in English.
 
 ## Skills
 
@@ -28,9 +29,15 @@ skills/<skill-id>/
 3. Update `README.md` only if the repository-level description or usage changes.
 4. Check the skill locally before committing.
 
-## Templates
+## Prompt and agent templates
+
+Changes to `opencode-setup-prompt.md` and `templates/agents/*.md` follow the same flow as skills: a branch, a focused commit, the automated checks, a pull request.
 
 - `templates/agents/*.md` contains the six role templates. Each holds its own complete `permissions` array, so permissions can be edited independently per agent.
+- A template body is shared by every project: do not put project facts into it. Project facts are added by the prompt to `## Project rules` when a project is set up.
+- A rule lives in one place only: shared rules in the `AGENTS.md` structure of the prompt, role rules in the role template. Do not repeat one in both.
+- When you add, move, or renumber a step in the prompt, update every reference to it (search for `Step N`) and the matching verification item in Step 8.
+- If a change affects how the repository is used, update `README.md` in a separate commit.
 
 ## Automated checks
 
@@ -56,7 +63,8 @@ Run these checks before a commit:
 - The skill is written in English unless it is intentionally project-specific.
 - The skill can be distributed under the repository's MIT license.
 - The skill installs as `.opencode/skills/<skill-id>/` and its `SKILL.md` stays at the directory root.
-- Agent templates contain a complete permissions array and can be edited independently per role.
+- Agent templates contain a complete permissions array and can be edited independently per role; only `tech-lead` has `mode: primary`.
+- References between steps of the prompt (`Step N`, section names) still point to existing text, and the Step 8 checks cover any new behavior.
 
 ## Commits
 

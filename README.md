@@ -51,4 +51,4 @@ opencode --prompt "Read /tmp/opencode-setup-prompt/opencode-setup-prompt.md and 
 
 ## Contributing
 
-Adding skills and running repository checks: [CONTRIBUTING.md](CONTRIBUTING.md). MIT license.
+Skills, agent templates, the prompt itself, and the rest of the repository can all be changed by contributors under the same rules. How to make a change and run the checks: [CONTRIBUTING.md](CONTRIBUTING.md). MIT license.
