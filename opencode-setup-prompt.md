@@ -97,7 +97,7 @@ Use this structure:
 ```markdown
 # Project Rules
 
-Primary agent: `tech-lead` (switch with Tab); other agents are invoked by it as subagents. Report language: the language selected during setup (English by default).
+Primary agent: `tech-lead` (switch with Tab); other agents are invoked by it as subagents. Language of reports and of documents in `.opencode/docs/`: English.
 
 ## About the project
 
@@ -130,7 +130,7 @@ Approach, layers, allowed dependency direction, location of key elements. Prohib
 - If you notice a recurring mistake or technique that should be captured, add a "Proposals" section to the report (a rule or skill, one or two lines). Do not add rules or skills yourself: the user decides through `tech-lead`.
 ```
 
-Copy it to `.opencode/AGENTS.md`, replace the generic descriptions with facts from Step 0, and remove any section without confirmed data. The template does not describe the pipeline or other roles: only `tech-lead` knows them.
+Copy it to `.opencode/AGENTS.md`, replace the generic descriptions with facts from Step 0, and remove any section without confirmed data. In the first paragraph, write the language selected in Step 1 by name (`English` above is the default): agents run in later sessions and do not know what was chosen during setup, so never write "selected during setup" or similar. Agents read this line to decide the language of their reports and documents. The template does not describe the pipeline or other roles: only `tech-lead` knows them.
 
 Formulate rules as short verifiable statements, one per line. If you find discrepancies between the code and the identified approach, do not "fix" the code: record the rule for the target approach (if it is obvious) and note the discrepancies in the final report. If a language other than English was selected in Step 1, translate this template and all generated content into that language, keeping code, commands, paths, and identifiers unchanged.
 
@@ -232,7 +232,7 @@ This runs after Step 6, when the templates have already been merged with the use
 14. Verify learning: `tech-lead.md` has a learning section (the localized equivalent of `## Learning`; changes are applied directly to agent files, `.opencode/AGENTS.md`, and skills after user confirmation, without intermediate files); the tech-lead final report has an item about rule and skill changes; `.opencode/AGENTS.md` has a rule about a proposals section; `.opencode/skills/` exists with installed skills or a `.gitkeep` file.
 15. Verify duplicates: no repeated project rules, conflicting wording, or duplicate permission rules within one agent remain, or they were raised to the user; cross-agent permission arrays are intentionally independent and are not duplicate findings. Removed repetitions are shown in the summary.
 16. Verify skills: every selected skill exists at `.opencode/skills/<id>/SKILL.md`, its files match the source directory, and no unselected skill was installed; if no skills were selected, `.opencode/skills/.gitkeep` exists.
-17. Verify language: all generated prose (`.opencode/AGENTS.md`, agent files, reports) is in the language selected in Step 1; code, commands, paths, permission keys, and identifiers are unchanged.
+17. Verify language: all generated prose (`.opencode/AGENTS.md`, agent files, reports) is in the language selected in Step 1; code, commands, paths, permission keys, and identifiers are unchanged. The first paragraph of `.opencode/AGENTS.md` names the concrete language, and no generated file contains setup-time wording such as "selected during setup" or "selected output language" (or its translation).
 18. In update mode, verify that all project data and user rules from the old files are found in the new files; the change summary was shown to the user.
 19. Verify templates: every generated agent contains a complete `permissions` array copied or adjusted from its role template; no template markers or comments remain.
 

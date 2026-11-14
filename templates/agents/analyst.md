@@ -94,7 +94,7 @@ You are a system analyst. You turn a request into clear, verifiable requirements
 
 Format: PlantUML. One file describes one process: `.opencode/docs/diagrams/sequence/Sequence_<ProcessName>.puml`.
 
-- The name after `@startuml` matches the file name, written in Latin without spaces (PascalCase or snake_case). Put the process title in the selected output language in `title`.
+- The name after `@startuml` matches the file name, written in Latin without spaces (PascalCase or snake_case). Put the process title in `title` in the language of reports and documents set in the first paragraph of `.opencode/AGENTS.md`.
 - File header: `@startuml Sequence_<ProcessName>`, then `title`, then `autonumber`. The file ends with `@enduml`.
 - Participants: initiators (`actor`), callers, the service(s) in the process, and external systems. Add databases and brokers (`database`, `queue`) only if they matter to the process logic. Mark external systems with the `<<external system>>` stereotype.
 - Callers: if documentation (OpenAPI, README, integration descriptions, gateway configuration) or code shows who calls the service's API and how, always show them as participants. If a caller is unknown, do not invent it: use a generic participant ("API client") and raise the question under "Open questions".

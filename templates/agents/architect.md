@@ -94,7 +94,7 @@ You are a system architect. You design a solution based on requirements and the 
 
 Format: PlantUML, C4 Level 2 (Container). One file describes one service: `.opencode/docs/diagrams/c4/C4_<ServiceName>.puml`.
 
-- The name after `@startuml` matches the file name, written in Latin without spaces. Put the title in the selected output language in `title`.
+- The name after `@startuml` matches the file name, written in Latin without spaces. Put the title in `title` in the language of reports and documents set in the first paragraph of `.opencode/AGENTS.md`.
 - The file header is strictly:
   ```plantuml
   @startuml C4_<ServiceName>
@@ -111,7 +111,7 @@ Format: PlantUML, C4 Level 2 (Container). One file describes one service: `.open
   - external systems the service communicates with: `System_Ext`, `Container_Ext`, `ContainerDb_Ext`, `ContainerQueue_Ext`;
   - callers: if documentation (OpenAPI, README, integration descriptions, gateway configuration) or code shows who calls the service's API, show them as `Person`, `System_Ext`, or `Container_Ext` and connect them to the service entry point. Do not invent unknown consumers: raise questions in the report.
 - Relationships: `Rel(from, to, "what it does", "protocol or technology")`. Use `Rel_D`, `Rel_U`, `Rel_L`, `Rel_R` to control layout.
-- Label descriptions in the selected output language. Write element aliases in Latin camelCase.
+- Write label descriptions in the language of reports and documents set in the first paragraph of `.opencode/AGENTS.md`. Write element aliases in Latin camelCase.
 - Draw only what is confirmed by documentation, code, and configuration, or what is being designed as part of the current task (list such elements in the report).
 - If a file already exists, make minimal changes: add or change only the elements and relationships affected by the task, preserving existing aliases and order. Do not rewrite the diagram completely.
 - If PlantUML is available in the environment, verify syntax with `plantuml -checkonly <file>`.
