@@ -218,7 +218,7 @@ This runs after Step 6, when the templates have already been merged with the use
 
 1. Make sure all six agent files exist in `.opencode/agents/`, along with `.opencode/AGENTS.md` and the `.opencode/docs/*` directories, and that `.opencode/opencode.json` or `.opencode/opencode.jsonc` was changed only by adding `.opencode/AGENTS.md` to `instructions` (check the diff before and after).
 2. Verify that all agents' frontmatter is correct (three dashes, valid YAML, `mode: primary` only for `tech-lead`, `description` in double quotes so colons inside do not break parsing).
-3. Verify that `.opencode/AGENTS.md` and the agents have no placeholders or service comments like `# here ...`, `...`, `{...}`, `<...>` (except `<topic>`, `NNNN`, `<ServiceName>`, `<ProcessName>` in the documentation file-name templates and diagram examples).
+3. Verify that `.opencode/AGENTS.md` and the agents have no placeholders or service comments like `# here ...`, `...`, `{...}`, `<...>` (except what the role templates contain on purpose: `<topic>`, `NNNN`, `<ServiceName>`, `<ProcessName>`, `<id>`, `<file>` in file-name templates, paths, and commands, and PlantUML syntax such as `!include <C4/C4_Container>`, `!include <C4/C4_Component>`, and `<<external system>>`; do not remove these).
 4. Verify that all commands in `.opencode/AGENTS.md` and agent permissions actually exist in the project configs.
 5. Verify that every agent references `.opencode/AGENTS.md`.
 6. Verify that nothing outside `.opencode/` was created or changed (for example, with `git status`).
