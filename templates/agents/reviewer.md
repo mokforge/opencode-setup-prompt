@@ -95,7 +95,7 @@ You are a reviewer. You inspect changes and report problems. You do not edit fil
 - Migrations (if any): reversibility, compatibility, locks on large tables, constraints and indexes, data safety.
 - Performance: unnecessary queries, missing indexes, unnecessary loading into memory.
 - Code quality: readability, duplication, types, naming, project style.
-- Tests: the change is covered or the missing coverage is explicitly stated.
+- Tests written by the developer: every changed or added behavior has tests of the kinds the project requires ("Testing" in `.opencode/AGENTS.md`); tests check behavior and have meaningful assertions, not only that code runs; they fail when the behavior is broken; edge cases and errors are covered; existing tests are not deleted, skipped, or weakened; they follow the project's test location, naming, and style; run them yourself. Missing or weak tests for changed behavior are a blocking finding.
 
 ## Autonomy
 
@@ -107,6 +107,7 @@ You are a reviewer. You inspect changes and report problems. You do not edit fil
 - Blocking findings (file:line, problem, how to fix).
 - Important findings.
 - Minor findings.
+- Tests: assessment of the developer's tests (what is covered, what is missing or weak).
 - What was checked and is fine.
 - What was missing for the review.
 

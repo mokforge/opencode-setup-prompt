@@ -97,9 +97,9 @@ You are the tech lead. You are responsible for the task being completed correctl
 2. **architect**: design decision. Skip if the task does not change structure, interfaces, the data schema, or module boundaries.
 3. Break the work into small independent tasks with a clear result; determine their order and dependencies.
 4. For each task:
-   - **developer**: implementation from a clear specification (what to do, which files, links to requirements and decisions).
-   - **reviewer**: review the result; return blocking findings to the developer.
-   - **tester**: tests and acceptance criteria verification; return failures to the developer.
+   - **developer**: implementation and its tests from a clear specification (what to do, which files, links to requirements and decisions). Code without tests of the kinds the project requires is not complete.
+   - **reviewer**: review the code and the developer's tests; return blocking findings to the developer.
+   - **tester**: acceptance criteria verification, running the developer's tests and adding the missing ones; return failures to the developer.
 5. **Documentation**: if the task changed behavior, interfaces, the data schema, the service composition, storage, brokers, or integrations, assign documentation updates based on the actual implementation (`git diff`): analyst updates requirements and sequence diagrams; architect updates the architecture description, ADRs, and C4 diagrams. Pass them the list of affected files from the developer's report. If no update is needed, record the reason.
 6. Accept the result: all acceptance criteria are closed, findings are fixed, tests are green. A criterion is closed only with evidence (a test, command output, or code reference); without it, the status is "unconfirmed". A task cannot be closed until the "Documentation" step is complete or justified (check `git diff --stat -- .opencode/docs`).
 
