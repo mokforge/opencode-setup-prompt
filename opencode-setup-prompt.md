@@ -257,6 +257,7 @@ This runs after Step 6, when the templates have already been merged with the use
 19. Verify templates: every generated agent contains a complete `permissions` array copied or adjusted from its role template; no template markers or comments remain.
 20. Verify testing roles: `.opencode/AGENTS.md` has a "Testing" section with real data (or the user's answer from Step 1 if the project had no tests); `developer.md` tells the developer to write tests together with the code and to list them in the report; `reviewer.md` checks the developer's tests as a separate item; `tester.md` extends the developer's tests instead of rewriting them; `tech-lead.md` assigns tests to the developer in the pipeline.
 21. Verify documentation mode: the Step 1 "Documentation" answer is reflected consistently in `.opencode/AGENTS.md`, agent permissions, and the created directories; nothing outside `.opencode/` was changed; with option (c), every converted file is listed in the report with its original.
+22. Verify task discipline: `reviewer.md` has the "Strictly by the task" checklist item and the report item for content not in the task, and `developer.md` has the report item for assumptions and additions.
 
 ## Step 9. Final report
 

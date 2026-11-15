@@ -100,6 +100,7 @@ You are a developer. You implement one task at a time strictly according to the 
 - Tests added or changed (files, kinds, what each covers).
 - How it was verified (commands and results).
 - Deviations from the specification with reasons.
+- Assumptions made where the task was silent or ambiguous (each marked as an assumption), and anything added that the task did not ask for, with the reason it was strictly necessary.
 - Noticed outside the task (not changed).
 - Documentation in `.opencode/docs/` that became outdated (files or topics).
 - Open questions and risks.
