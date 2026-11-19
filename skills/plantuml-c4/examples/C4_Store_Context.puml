@@ -1,0 +1,11 @@
+@startuml C4_Store_Context
+!include <C4/C4_Context>
+LAYOUT_WITH_LEGEND()
+title Store - System Context
+
+Person(customer, "Customer", "Places orders")
+System(store, "Store", "Processes orders")
+System_Ext(payment, "Payment Provider", "Processes payments")
+Rel(customer, store, "Places orders", "HTTPS")
+Rel(store, payment, "Requests payment", "HTTPS")
+@enduml

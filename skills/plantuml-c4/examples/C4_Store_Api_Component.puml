@@ -1,0 +1,17 @@
+@startuml C4_Store_Api_Component
+!include <C4/C4_Component>
+LAYOUT_WITH_LEGEND()
+title Store API - Components
+
+Person(customer, "Customer", "Places orders")
+Container_Boundary(apiBoundary, "Store API") {
+    Component(handler, "Orders Handler", "FastAPI", "Accepts requests")
+    Component(useCase, "Create Order", "Python", "Coordinates order creation")
+    Component(repository, "Orders Repository", "Python", "Persists orders")
+}
+ContainerDb(db, "Orders DB", "PostgreSQL", "Stores orders")
+Rel(customer, handler, "Creates order", "HTTPS")
+Rel(handler, useCase, "Calls", "Python")
+Rel(useCase, repository, "Saves through")
+Rel(repository, db, "Writes", "SQL")
+@enduml

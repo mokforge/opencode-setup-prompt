@@ -1,0 +1,17 @@
+@startuml C4_Store_Container
+!include <C4/C4_Container>
+LAYOUT_WITH_LEGEND()
+title Store - Containers
+
+Person(customer, "Customer", "Places orders")
+System_Ext(payment, "Payment Provider", "Processes payments")
+System_Boundary(store, "Store") {
+    Container(api, "Store API", "FastAPI", "Handles order requests")
+    ContainerDb(db, "Orders DB", "PostgreSQL", "Stores orders")
+    ContainerQueue(events, "Order Events", "Kafka", "Publishes order events")
+}
+Rel(customer, api, "Creates orders", "HTTPS")
+Rel(api, db, "Reads and writes", "SQL")
+Rel(api, events, "Publishes order-created events", "Kafka")
+Rel(api, payment, "Requests payment", "HTTPS")
+@enduml

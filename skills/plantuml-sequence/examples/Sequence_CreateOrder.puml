@@ -1,0 +1,23 @@
+@startuml Sequence_CreateOrder
+title Create order
+autonumber
+
+actor "Customer" as Customer
+participant "Store API" as API
+database "Orders DB" as DB
+participant "Payment Provider" as Payment <<external>>
+
+Customer -> API : POST /orders
+activate API
+API -> DB : INSERT order
+DB --> API : Order saved
+API -> Payment : POST /charges
+alt payment accepted
+    Payment --> API : 200 OK
+    API --> Customer : 201 Created
+else payment declined
+    Payment --> API : 402 Payment Required
+    API --> Customer : 402 Payment Required
+end
+deactivate API
+@enduml
