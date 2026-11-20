@@ -35,7 +35,7 @@ Run the same command any time to update an existing setup. The agent keeps your 
 - `.opencode/AGENTS.md`: minimal rules for all agents, connected in `.opencode/opencode.json`.
 - `.opencode/agents/`: six development agents or four documentation agents. Documentation mode never creates `developer` or `tester`.
 - Documentation root: `.opencode/docs/` by default, or a custom path chosen during setup. It holds requirements, ADRs, architecture, and C4 / sequence diagrams, plus the page types your project needs. If documentation already exists, you choose whether agents keep it as it is, use the standard for new documents, or convert it.
-- `.opencode/skills/`: the skills you selected, including the optional PlantUML diagram skills, plus the mandatory `security-review` and, when documentation is maintained, `technical-writing`.
+- `.opencode/skills/`: the skills you selected, including the optional PlantUML diagram and Confluence skills, plus the mandatory `security-review` and, when documentation is maintained, `technical-writing`.
 
 `tech-lead` is set as the default agent (`default_agent` in `.opencode/opencode.json`), so OpenCode starts with it. Describe a task: it creates a branch and delegates to the other agents.
 
@@ -60,6 +60,10 @@ The catalog contains two separate skills:
 When you choose to maintain PlantUML documentation during setup, select the relevant PlantUML skills (the “relevant” or “all” options include them). OpenCode loads a selected skill through the native `skill` tool when the architect or analyst needs it; the agent templates contain invocation instructions, **not** duplicated PlantUML grammar. The PlantUML skills are installed according to your choice; `security-review` is always installed, and `technical-writing` is installed whenever documentation is maintained.
 
 C4 **L2** shows deployable containers in a software system, while **L3** shows components within a single container. Legacy diagrams that mix these levels must be reviewed and split when modified, without inventing missing architecture. Source diagrams remain editable `.puml` files for JetBrains [PlantUML4Idea](https://plugins.jetbrains.com/plugin/7017-plantuml4idea/). Their syntax should be checked with PlantUML CLI and the IDE preview checked separately; using a local `!include <C4/...>` avoids network-only C4 dependencies.
+
+## Confluence via a skill
+
+The optional `confluence` skill covers Confluence read/export and publishing. It preserves tables (including merged cells), images, attachments, links, code, callouts and macros; exports pages to Markdown with metadata and local attachments; and publishes Markdown back to Confluence with version-safe updates, attachment upload and read-back validation. Analyst, architect, reviewer and tech-lead can load it when the project uses Confluence. Credentials and external access follow the project policy; the skill never stores tokens in content.
 
 ## Security review via a skill
 
