@@ -1,4 +1,4 @@
-@startuml C4_Store_Container
+@startuml C4_L2_Store
 !include <C4/C4_Container>
 LAYOUT_WITH_LEGEND()
 title Store - Containers

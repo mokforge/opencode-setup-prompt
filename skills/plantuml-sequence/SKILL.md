@@ -2,27 +2,33 @@
 name: plantuml-sequence
 description: Create, update, or review PlantUML UML sequence diagrams for API flows, processes, events and errors, with syntax and JetBrains PlantUML4Idea compatibility checks.
 ---
+
 # UML sequence diagrams with PlantUML
 
-Use this skill whenever a task calls for a sequence diagram, interaction flow, API scenario or event exchange. Work with editable UTF-8 `.puml` source, never only a screenshot or Mermaid output. Read [references/jetbrains-and-validation.md](references/jetbrains-and-validation.md) for the required verification workflow.
+Use this skill whenever a task calls for a sequence diagram, interaction flow, API scenario or event exchange. Work with editable UTF-8 `.puml` source, never only a screenshot or Mermaid output.
 
-## 1. Model the real interaction
+Detailed rules live next to this file; read only the ones you need:
 
-- Trace the user scenario in requirements, code, OpenAPI, events and integrations. Separate implemented behavior from proposed behavior and flag unknown callers; do not invent endpoints, methods, event names or replies.
-- One file per coherent process. Prefer `.opencode/docs/diagrams/sequence/Sequence_<ProcessName>.puml`, unless project documentation conventions specify another path. Reuse existing file names and aliases during updates.
-- Declare participants explicitly with ASCII aliases: `actor` for human initiator; `participant` for applications/services; `database` or `queue` only where relevant. For a confirmed external system, use a descriptive label and `<<external>>` if helpful. Keep participants in reading order; do not turn class/module internals into independent services.
-- Identify the entrypoint and actual caller. If the caller is unknown, use a clearly generic `API client` and call out the unknown in the report.
-- Messages `A -> B : operation` represent calls/sends; `B --> A : response` represent return messages. Label HTTP calls with method and path, RPC with actual method, and events with documented topic/event name. Keep return arrows and protocol/error semantics accurate.
-- Use `alt`/`else`/`end` for exclusive outcomes, `opt` for optional logic, `loop` for repeated steps and `par` for concurrent branches. Close every block. Cover success, important errors, timeout/retry only if documented, and relevant acceptance criteria.
-- Mark important steps with short `note right of Alias: FR-1, AC-2` annotations when the IDs actually exist. Do not cite invented requirements. Use `autonumber` for traceability when helpful.
+- `modeling.md` — participants, callers, messages, returns, branches, loops, notes and accuracy. Read before designing or reviewing an interaction.
+- `source-format.md` — file location and names, `@startuml` identifiers, portability and minimal updates. Read before writing or changing a `.puml`.
+- `validation.md` — structural checks, CLI syntax check, test render and PlantUML4Idea preview. Read before validating a diagram.
 
-## 2. Portable source
+## Non-negotiables
 
-- Source begins with `@startuml Sequence_<ProcessName>` (the identifier must match the filename stem), then `title` and `autonumber` as appropriate; end with `@enduml`. Use UTF-8 text for localized titles and labels.
-- Use native PlantUML sequence syntax only; no `!include` from the internet, proprietary macros, image-based participants or external rendering dependencies. Prefer stable features supported by older PlantUML4Idea engines.
-- Start from [examples/Sequence_CreateOrder.puml](examples/Sequence_CreateOrder.puml) as a syntax reference, replacing fictional data with verified project facts. Keep diagrams focused; split long flows rather than shrink labels to unreadable text.
-- Update the smallest affected part of an existing diagram. Keep unrelated messages and aliases unchanged.
+- Trace the scenario in requirements, code, API contracts, events and integrations. Separate implemented behavior from proposed behavior and flag unknown callers. Do not invent endpoints, methods, event names or replies.
+- One file per coherent process. Name it `Sequence_<ProcessName>.puml`; the `@startuml` identifier equals the filename stem.
+- Use native PlantUML sequence syntax only: no remote `!include`, proprietary macros, image-based participants or external rendering dependencies.
+- Keep the diagram focused and split long flows rather than shrinking labels to unreadable text.
+- Validate the source, syntax and rendering honestly, and report what was and was not executed.
 
-## 3. Acceptance and reporting
+## Before finishing
 
-Run the checks in the reference for every new or changed `.puml`: source balance, participant alias use, balanced branching/activation, CLI `-checkonly`/equivalent, an actual test render and JetBrains preview when accessible. Never say "validated" if the tool was unavailable; report CLI and IDE preview status separately. List file path, scenario, validated behavior, source evidence, command/version/result and open assumptions.
+- The file is a UTF-8 `.puml` with one balanced `@startuml`/`@enduml` pair and an identifier equal to the stem.
+- Every participant alias is declared, and every message endpoint exists.
+- All `alt`/`else`/`opt`/`loop`/`par` blocks are closed, and `activate`/`deactivate` are balanced.
+- Branches, errors and optional steps reflect documented behavior, not guesses.
+- Syntax check, test render and IDE preview status are known and reported separately.
+
+## Report
+
+List the file path, scenario, validated behavior, source evidence, check command/version/result, preview status and open assumptions.

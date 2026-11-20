@@ -41,7 +41,7 @@ Run the same command any time to update an existing setup. The agent keeps your 
 
 The catalog contains two separate skills:
 
-- **`plantuml-c4`** — C4 System Context (L1), Container (L2), and Component (L3) diagrams; checks C4 scope and PlantUML syntax.
+- **`plantuml-c4`** — C4 System Context (L1), Container (L2), and Component (L3) diagrams with the level in every file name (`C4_L1_...`, `C4_L2_...`, `C4_L3_...`); checks C4 scope and PlantUML syntax.
 - **`plantuml-sequence`** — sequence diagrams for API calls, events, branches, and failure scenarios.
 
 When you choose to maintain PlantUML documentation during setup, select the relevant skills (the “relevant” or “all” options include them). OpenCode loads a selected skill through the native `skill` tool when the architect or analyst needs it; the agent templates contain invocation instructions, **not** duplicated PlantUML grammar. Skills are not installed against your choice.

@@ -2,37 +2,53 @@
 name: plantuml-c4
 description: Create, edit, or review C4 architecture diagrams (system context, containers, components) as PlantUML .puml files, including diagrams for JetBrains PlantUML4Idea.
 ---
+
 # C4 architecture diagrams with PlantUML
 
-Use this skill whenever the task creates, changes, validates, or reviews a C4 diagram. Read [references/jetbrains-and-validation.md](references/jetbrains-and-validation.md) before validating a file. Use the source `.puml` as the deliverable, not only an exported image.
+Use this skill whenever a task creates, changes, validates, or reviews a C4 diagram. The deliverable is an editable UTF-8 `.puml` source file, not only an exported image.
 
-## 1. Establish facts and choose the correct level
+Detailed rules live next to this file; read only the ones you need:
 
-- Inspect code, configuration, documented APIs, deployment and the user's requested future design. Never fabricate a system, API consumer, queue, storage, or technology. Distinguish *observed* from *proposed* elements in the report.
-- **L1 System Context:** one software system, its users, and neighboring systems; use `!include <C4/C4_Context>` and `Person`, `System`, `System_Ext`.
-- **L2 Container:** one software system boundary with independently runnable/deployable applications or data stores. Use `!include <C4/C4_Container>`, `System_Boundary`, `Container`, `ContainerDb`, and `ContainerQueue`. Here "container" is a C4 runtime/deployable unit, not necessarily Docker.
-- **L3 Component:** components *inside one selected container* (handlers, domain services, adapters, etc.). Use `!include <C4/C4_Component>`, `Container_Boundary`, and `Component`; include adjacent real containers only for context. Do **not** draw components in an L2 diagram or label internal code modules as separate containers.
-- Use the smallest level that answers the architecture question. For a service's internal layers, prefer L3 over incorrectly mixing L2 and L3.
-- **Correct legacy mixed levels:** A file labeled "L2 Container" that places `Component(...)` inside `Container_Boundary(...)` is not a valid representation of L2. If the task changes that diagram, separate it into an L2 container view and an L3 component view for the relevant container, based only on verified architecture. Retain confirmed actors, dependencies, protocols, and relationship directions; represent cross-container communication at container granularity on L2, and internal component collaboration on L3. Do not blindly duplicate elements or silently drop edges. If the intended container boundaries cannot be established, report the ambiguity and request a decision instead of inventing a decomposition. Do not mass-rewrite unrelated diagrams.
+- `system-context.md` — L1: one software system, its users and neighboring systems. Read before creating or reviewing an L1 view.
+- `containers.md` — L2: runnable/deployable containers of one system. Read before creating or reviewing an L2 view.
+- `components.md` — L3: components inside one selected container. Read before creating or reviewing an L3 view.
+- `source-format.md` — identifiers, includes, aliases, relationships, layout and edits. Read before writing any `.puml`.
+- `validation.md` — structural checks, CLI syntax check, test render and PlantUML4Idea preview. Read before validating a file.
 
-## 2. Source format
+## File naming and location
 
-- Prefer existing project documentation paths, conventions, and filenames. For the setup's default, use `.opencode/docs/diagrams/c4/C4_<SystemName>.puml` (L1 or L2) or `C4_<ContainerName>_Component.puml` (L3). Preserve existing filename when editing it.
-- One `@startuml <ASCII_identifier>` ... `@enduml` block per `.puml` source; identifier equals the filename stem, with only letters, digits and underscores. Put localized human-readable text in `title` and labels.
-- Prefer the **bundled, offline** C4 standard library: exactly the include for the chosen level, such as `!include <C4/C4_Container>`. Do not use remote `!include` URLs, `<style>` plugins, Mermaid, Structurizr DSL, or image-only diagrams. The C4 component include already includes its parent library.
-- Introduce every alias once before it is referenced. Prefer ASCII identifiers (`camelCase`), quoted human-readable labels, short descriptions, and real technologies only. Avoid invented C4 macros or mixed level semantics.
-- Use `Rel(from, to, "verb phrase", "protocol/technology")`, reversing endpoints only when the real flow is reversed. Optionally `Rel_D` / `Rel_U` / `Rel_L` / `Rel_R` for layout, but never to change semantic direction. Show callers, data stores, event producers and consumers where confirmed. Avoid walls of edges; split the view if needed.
-- Use `LAYOUT_WITH_LEGEND()` where legibility permits. Keep the diagram renderable without external image assets. Do not bind appearance to an unversioned external URL.
+The default location is `.opencode/docs/diagrams/c4/`. Every C4 file starts with the diagram level and names its subject:
 
-## 3. Examples and review
+- `C4_L1_<SystemName>.puml` — system context of one system.
+- `C4_L2_<SystemName>.puml` — containers of that system.
+- `C4_L3_<ContainerName>.puml` — components of one container.
 
-Read the runnable examples for the chosen level; replace their fictional elements with project-specific facts:
-- [examples/C4_Store_Context.puml](examples/C4_Store_Context.puml)
-- [examples/C4_Store_Container.puml](examples/C4_Store_Container.puml)
-- [examples/C4_Store_Api_Component.puml](examples/C4_Store_Api_Component.puml)
+The `C4_L<n>_` prefix is mandatory and its level must match the file content. Never create a C4 diagram without the level in its name, and never put one level in the name and another in the diagram. The `@startuml` identifier equals the filename stem.
 
-When updating an existing diagram, preserve aliases and untouched elements; add only impacted relationships and boundaries. Validate a whole `.puml` file, not a Markdown code fence. Follow the validation steps in the reference: use CLI syntax check (and test rendering) with the PlantUML version used by the IDE when possible, then visually preview in PlantUML4Idea. Fix errors before reporting completion. If no local renderer is available, state **not validated**; do not claim IDE compatibility from visual inspection of text alone.
+Prefer the project's documentation paths. If the project has its own file naming, keep it only when the level remains visible in the file name; otherwise use the pattern above. Keep an existing compliant name when editing the file; if a file you must change lacks the level prefix, rename it to this rule and report the old and new paths.
 
-## 4. Report
+## Non-negotiables
 
-List output paths, chosen C4 level and scope, source evidence for the depicted elements, syntax-check command/version/result, preview status, and unresolved assumptions. Report deviations from code or architecture rules instead of silently editing the source of truth.
+- Inspect code, configuration, documented APIs, deployment and the requested future design. Never fabricate a system, API consumer, queue, storage, technology or relationship. Distinguish _observed_ from _proposed_ elements in the report.
+- One level per file. Choose the smallest level that answers the architecture question; for the internal layers of a service, prefer a separate L3 view over adding `Component` elements to L2. Do not mix L1, L2 and L3 semantics in one view.
+- Use the bundled offline C4 standard library with exactly the include for the chosen level (`<C4/C4_Context>`, `<C4/C4_Container>` or `<C4/C4_Component>`). Never use remote `!include` URLs, `<style>` plugins, Mermaid, Structurizr DSL or image-only diagrams.
+- Declare every alias once before use. Use ASCII aliases, quoted human-readable labels, short descriptions and real technologies only. Do not invent C4 macros.
+- Show confirmed callers, data stores, producers and consumers. Keep relationship directions and protocols accurate, and split the view instead of drawing walls of edges.
+- Validate the whole `.puml` file with a local CLI and inspect the IDE preview when accessible. Never claim validation or rendering you did not execute.
+
+## Legacy diagrams with mixed levels
+
+A file labeled "L2 Container" that places `Component(...)` inside `Container_Boundary(...)` is not an L2 view. If the task changes that diagram, separate it into an L2 container view and an L3 component view for the relevant container, based only on verified architecture. Retain confirmed actors, dependencies, protocols and relationship directions; show cross-container communication at container granularity on L2 and internal component collaboration on L3. Do not duplicate elements blindly or drop edges. If the intended container boundaries cannot be established, report the ambiguity and ask for a decision instead of inventing a decomposition. Do not mass-rewrite unrelated diagrams.
+
+## Before finishing
+
+- The filename starts with `C4_L1_`, `C4_L2_` or `C4_L3_`, and the level matches the content.
+- The file has one balanced `@startuml`/`@enduml` pair whose identifier equals the stem.
+- Every alias is declared before use, and every relationship endpoint exists.
+- The include for the chosen level is offline and no foreign notation is mixed in.
+- The example for the level was used as a syntax reference, not as copied architecture.
+- Syntax check, test render and IDE preview status are known and reported separately.
+
+## Report
+
+List output paths, chosen C4 level and scope, source evidence for the depicted elements, syntax-check command/version/result, preview status and unresolved assumptions. Report deviations from code or architecture rules instead of silently editing the source of truth.
