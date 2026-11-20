@@ -74,6 +74,10 @@ When you choose to maintain PlantUML documentation during setup, select the rele
 
 The optional [Confluence skill](skills/confluence/SKILL.md) covers read, export, conversion, publishing, and round-trip validation of rich page content. Analyst, architect, reviewer and tech-lead can load it when needed. External access still requires permission.
 
+## OpenAPI / Swagger specifications
+
+The optional [OpenAPI specification skill](skills/openapi-spec-generation/SKILL.md) supports design-first, code-first, and hybrid contract work, validation, and SDK generation when requested. It follows project sources and configured tooling.
+
 ## Security review via a skill
 
 `security-review` is installed in every setup and mandatory for reviewer and tech-lead. It applies to code/configuration changes and documentation safety. See [the skill](skills/security-review/SKILL.md) for categories and evidence requirements; templates contain invocation instructions rather than a duplicate checklist.
