@@ -52,7 +52,7 @@ These searches find candidates, not findings. Read each match and trace the data
 | `requests.get(`, `httpx.get(`, `fetch(`, `urllib.request`, `open(`                                     | SSRF and path or file access with user-controlled targets                                 |
 | `verify=False`, `InsecureSkipVerify`, `NODE_TLS_REJECT_UNAUTHORIZED`, `ssl._create_unverified_context` | Disabled TLS verification                                                                 |
 | `DEBUG`, `debug=True`, `TRACE`, `stacktrace`, `console.log`                                            | Debug output, stack traces and sensitive logging                                          |
-| `AKIA`, `sk-`, `BEGIN PRIVATE KEY`, `password`, `secret`, `token`, `api_key`                           | Hardcoded or logged credentials; verify, redact and request rotation                      |
+| `AKIA`, `sk-`, private-key headers, `password`, `secret`, `token`, `api_key`                           | Hardcoded or logged credentials; verify, redact and request rotation                      |
 | `role`, `is_admin`, `tenant_id`, `owner_id`, `price`, `balance`                                        | Mass assignment, authorization and tenant-boundary fields                                 |
 
 ## Blocking examples
