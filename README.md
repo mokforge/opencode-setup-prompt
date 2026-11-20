@@ -18,7 +18,7 @@ OpenCode opens with the task already sent. The agent clones this repository to a
 4. which optional **skills** to install (relevant, all, none, or a selection); `security-review` is always installed, and `technical-writing` is installed whenever documentation is maintained;
 5. anything it cannot determine from the code.
 
-Then it creates everything inside `.opencode/` and removes the temporary clone. Nothing is committed or pushed; review the result with `git status` and `git diff`.
+The selected language is applied to `.opencode/AGENTS.md`, every agent file, and every Markdown file of every installed skill; translation is not optional. Then it creates everything inside `.opencode/` and removes the temporary clone. Nothing is committed or pushed; review the result with `git status` and `git diff`.
 
 Already running OpenCode? Send the same sentence as a message:
 
@@ -38,6 +38,8 @@ Run the same command any time to update an existing setup. The agent keeps your 
 - `.opencode/skills/`: the skills you selected, including the optional PlantUML diagram and Confluence skills, plus the mandatory `security-review` and, when documentation is maintained, `technical-writing`.
 
 `tech-lead` is set as the default agent (`default_agent` in `.opencode/opencode.json`), so OpenCode starts with it. Describe a task: it creates a branch and delegates to the other agents.
+
+Setup also inspects existing root and nested `AGENTS.md` rules, configured MCP servers and skills outside `.opencode/skills`. MCP settings and user-authored rules are preserved; project-local skills are moved into `.opencode/skills/` when you approve, a missing `SKILL.md` is created from the existing files, and all generated or moved prose is translated into the selected language.
 
 ## Documentation (docs-as-code) mode
 

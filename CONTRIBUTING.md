@@ -21,6 +21,7 @@ skills/<skill-id>/
 - Keep `SKILL.md` focused on the rules needed for most tasks. Move long, topic-specific guidance into reference files and link them from `SKILL.md`.
 - Put scripts, templates, and reference material in the same directory as `SKILL.md`.
 - Skills in this repository are MIT. Do not include material you cannot license under MIT.
+- Keep source skills in English. The setup translates the installed copy when the user selects another language; do not add language variants to the source catalog.
 
 ## Adding or updating a skill
 
@@ -34,7 +35,7 @@ skills/<skill-id>/
 Changes to `opencode-setup-prompt.md` and `templates/agents/*.md` follow the same flow as skills: a branch, a focused commit, the automated checks, a pull request.
 
 - `templates/agents/*.md` contains the six universal role templates. Development uses all six; documentation (docs-as-code) uses `tech-lead`, `analyst`, `architect` and `reviewer`. Each holds its own complete `permissions` array, so permissions can be edited independently per agent. Do not add separate documentation copies of the agents; the prompt changes only the tech-lead pipeline and chooses which agents to create.
-- A template body is shared by every project: do not put project facts into it. Project facts are added by the prompt to `## Project rules` when a project is set up.
+- A template body is shared by every project: do not put project facts into it. Project facts are added by the prompt to `## Project rules` when a project is set up. Source templates stay in English; they are translated in the generated project.
 - A rule lives in one place only: shared rules in the `AGENTS.md` structure of the prompt, role rules in the role template. Do not repeat one in both.
 - Do not weaken the external access policy: the "External access and data boundaries" section in the `AGENTS.md` template and the external-access `ask` rules in all universal agent templates are mandatory. Keep the global `permissions` block in the generated `.opencode/opencode.json`.
 - When you add, move, or renumber a step in the prompt, update every reference to it (search for `Step N`) and the matching verification item in Step 8.
