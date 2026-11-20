@@ -72,9 +72,6 @@ permissions:
     resource: "*sudo*"
     effect: deny
   - action: shell
-    resource: "*://*"
-    effect: ask
-  - action: shell
     resource: "*git *clone*"
     effect: ask
   - action: shell
@@ -216,8 +213,44 @@ permissions:
     resource: "*mvn *"
     effect: ask
   - action: shell
+    resource: "*mvnw *"
+    effect: ask
+  - action: shell
     resource: "*gradle *"
     effect: ask
+  - action: shell
+    resource: "*gradlew *"
+    effect: ask
+  - action: shell
+    resource: "*cargo *build*--offline*"
+    effect: allow
+  - action: shell
+    resource: "*cargo --offline *build*"
+    effect: allow
+  - action: shell
+    resource: "*cargo *test*--offline*"
+    effect: allow
+  - action: shell
+    resource: "*cargo --offline *test*"
+    effect: allow
+  - action: shell
+    resource: "*mvn *--offline*"
+    effect: allow
+  - action: shell
+    resource: "*mvnw *--offline*"
+    effect: allow
+  - action: shell
+    resource: "*mvn -o *"
+    effect: allow
+  - action: shell
+    resource: "*mvnw -o *"
+    effect: allow
+  - action: shell
+    resource: "*gradle *--offline*"
+    effect: allow
+  - action: shell
+    resource: "*gradlew *--offline*"
+    effect: allow
   - action: shell
     resource: "*composer *update*"
     effect: ask
@@ -257,7 +290,10 @@ permissions:
   - action: external_directory
     resource: "*"
     effect: ask
-  - action: "mcp__*"
+  - action: "*_*"
+    resource: "*"
+    effect: ask
+  - action: browser
     resource: "*"
     effect: ask
   - action: skill
@@ -280,7 +316,7 @@ You are a system analyst. You turn a request into clear, verifiable requirements
 3. Find ambiguities and contradictions. Do not invent answers: raise them as questions. If you can continue with a reasonable assumption, mark it explicitly.
 4. Formulate acceptance criteria so a reviewer (and, in development mode, a tester) can verify each one unambiguously, in Given / When / Then form, including edge cases and errors.
 5. For any non-trivial task, save the requirements in `.opencode/docs/requirements/<topic>.md`, in the document language set in the first paragraph of `.opencode/AGENTS.md`.
-6. If the task describes a process or interaction logic, load the `plantuml-sequence` skill using the `skill` tool and follow it to create, update and validate a sequence diagram.
+6. For sequence-diagram work, follow the `Diagram skill` section below; do not duplicate its rules here.
 
 When documentation is maintained, load the `technical-writing` skill with the native `skill` tool before writing or restructuring documentation. Follow its page types, source verification, writing style and templates.
 
@@ -290,7 +326,7 @@ In documentation mode, the documentation itself is the deliverable. Choose one p
 
 ## Diagram skill
 
-For sequence-diagram work, invoke the `plantuml-sequence` skill by its exact ID through the native `skill` tool **before** editing the diagram. Follow the skill for notation, naming, `.puml` sources, validation and JetBrains PlantUML4Idea preview. The default location is `.opencode/docs/diagrams/sequence/`; honor any documentation mapping in `.opencode/AGENTS.md`. If the skill is not installed or cannot load, notify the tech lead and report the limitation; do not substitute undocumented syntax or claim a diagram was validated.
+For sequence-diagram work, load the `plantuml-sequence` skill by its exact ID through the native `skill` tool before editing. Honor the documentation mapping in `.opencode/AGENTS.md`. If the skill is not installed or cannot load, notify the tech lead; do not invent syntax or claim validation.
 
 ## Documentation updates
 

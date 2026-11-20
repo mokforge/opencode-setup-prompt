@@ -69,9 +69,6 @@ permissions:
     resource: "*sudo*"
     effect: deny
   - action: shell
-    resource: "*://*"
-    effect: ask
-  - action: shell
     resource: "*git *clone*"
     effect: ask
   - action: shell
@@ -213,8 +210,44 @@ permissions:
     resource: "*mvn *"
     effect: ask
   - action: shell
+    resource: "*mvnw *"
+    effect: ask
+  - action: shell
     resource: "*gradle *"
     effect: ask
+  - action: shell
+    resource: "*gradlew *"
+    effect: ask
+  - action: shell
+    resource: "*cargo *build*--offline*"
+    effect: allow
+  - action: shell
+    resource: "*cargo --offline *build*"
+    effect: allow
+  - action: shell
+    resource: "*cargo *test*--offline*"
+    effect: allow
+  - action: shell
+    resource: "*cargo --offline *test*"
+    effect: allow
+  - action: shell
+    resource: "*mvn *--offline*"
+    effect: allow
+  - action: shell
+    resource: "*mvnw *--offline*"
+    effect: allow
+  - action: shell
+    resource: "*mvn -o *"
+    effect: allow
+  - action: shell
+    resource: "*mvnw -o *"
+    effect: allow
+  - action: shell
+    resource: "*gradle *--offline*"
+    effect: allow
+  - action: shell
+    resource: "*gradlew *--offline*"
+    effect: allow
   - action: shell
     resource: "*composer *update*"
     effect: ask
@@ -254,7 +287,10 @@ permissions:
   - action: external_directory
     resource: "*"
     effect: ask
-  - action: "mcp__*"
+  - action: "*_*"
+    resource: "*"
+    effect: ask
+  - action: browser
     resource: "*"
     effect: ask
   - action: skill
@@ -268,7 +304,7 @@ permissions:
     effect: allow
 ---
 
-You are a reviewer. You inspect changes and report problems. You do not edit files and do not run commands that change state. Project-wide rules: `.opencode/AGENTS.md` (check its "Architecture" section as a separate item). The project checklist is at the end of this file.
+You are a reviewer. You inspect changes and report problems. Do not edit source or project data. Use isolated test/build outputs; disposable ignored artifacts are acceptable, but do not alter tracked files, shared databases, or external state. Project-wide rules: `.opencode/AGENTS.md` (check its "Architecture" section as a separate item). The project checklist is at the end of this file.
 
 ## How to work
 
@@ -285,7 +321,7 @@ You are a reviewer. You inspect changes and report problems. You do not edit fil
 - Project rules: the "Architecture" section of `.opencode/AGENTS.md` and "Project rules" below (layer boundaries, dependency direction, conventions).
 - Nested `AGENTS.md`: for changed directories, their rules take precedence; a violation is blocking if it is a prohibition.
 - Correctness: logic, edge cases, errors, empty values, concurrency, idempotency, breaking changes to API and event contracts. Event and webhook handlers: check for assumptions that a record exists or that delivery order is guaranteed (existence checks, idempotent writes).
-- Security (mandatory): apply the `security-review` skill to the change. Check every category in its checklist, especially SQL/ORM injection, missing object-level authorization (IDOR/BOLA), authentication and session handling, secrets, XSS/SSRF, path traversal, unsafe deserialization, file handling, crypto, logs and errors, dependencies and configuration. Do not rely on scanners alone; trace input from source to sink and verify the exploit path. An unresolved Critical or High finding is blocking.
+- Security (mandatory): apply every relevant category and blocking rule in the `security-review` skill. Do not rely on scanners alone; trace input from source to sink and verify findings safely. Unresolved Critical/High findings and any Medium finding the skill marks blocking must be returned for a fix.
 - Migrations (if any): reversibility, compatibility, locks on large tables, constraints and indexes, data safety.
 - Performance: unnecessary queries, missing indexes, unnecessary loading into memory.
 - Code quality: readability, duplication, types, naming, project style.

@@ -72,9 +72,6 @@ permissions:
     resource: "*sudo*"
     effect: deny
   - action: shell
-    resource: "*://*"
-    effect: ask
-  - action: shell
     resource: "*git *clone*"
     effect: ask
   - action: shell
@@ -216,8 +213,44 @@ permissions:
     resource: "*mvn *"
     effect: ask
   - action: shell
+    resource: "*mvnw *"
+    effect: ask
+  - action: shell
     resource: "*gradle *"
     effect: ask
+  - action: shell
+    resource: "*gradlew *"
+    effect: ask
+  - action: shell
+    resource: "*cargo *build*--offline*"
+    effect: allow
+  - action: shell
+    resource: "*cargo --offline *build*"
+    effect: allow
+  - action: shell
+    resource: "*cargo *test*--offline*"
+    effect: allow
+  - action: shell
+    resource: "*cargo --offline *test*"
+    effect: allow
+  - action: shell
+    resource: "*mvn *--offline*"
+    effect: allow
+  - action: shell
+    resource: "*mvnw *--offline*"
+    effect: allow
+  - action: shell
+    resource: "*mvn -o *"
+    effect: allow
+  - action: shell
+    resource: "*mvnw -o *"
+    effect: allow
+  - action: shell
+    resource: "*gradle *--offline*"
+    effect: allow
+  - action: shell
+    resource: "*gradlew *--offline*"
+    effect: allow
   - action: shell
     resource: "*composer *update*"
     effect: ask
@@ -257,7 +290,10 @@ permissions:
   - action: external_directory
     resource: "*"
     effect: ask
-  - action: "mcp__*"
+  - action: "*_*"
+    resource: "*"
+    effect: ask
+  - action: browser
     resource: "*"
     effect: ask
 ---

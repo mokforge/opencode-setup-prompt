@@ -69,9 +69,6 @@ permissions:
     resource: "*sudo*"
     effect: deny
   - action: shell
-    resource: "*://*"
-    effect: ask
-  - action: shell
     resource: "*git *clone*"
     effect: ask
   - action: shell
@@ -213,8 +210,44 @@ permissions:
     resource: "*mvn *"
     effect: ask
   - action: shell
+    resource: "*mvnw *"
+    effect: ask
+  - action: shell
     resource: "*gradle *"
     effect: ask
+  - action: shell
+    resource: "*gradlew *"
+    effect: ask
+  - action: shell
+    resource: "*cargo *build*--offline*"
+    effect: allow
+  - action: shell
+    resource: "*cargo --offline *build*"
+    effect: allow
+  - action: shell
+    resource: "*cargo *test*--offline*"
+    effect: allow
+  - action: shell
+    resource: "*cargo --offline *test*"
+    effect: allow
+  - action: shell
+    resource: "*mvn *--offline*"
+    effect: allow
+  - action: shell
+    resource: "*mvnw *--offline*"
+    effect: allow
+  - action: shell
+    resource: "*mvn -o *"
+    effect: allow
+  - action: shell
+    resource: "*mvnw -o *"
+    effect: allow
+  - action: shell
+    resource: "*gradle *--offline*"
+    effect: allow
+  - action: shell
+    resource: "*gradlew *--offline*"
+    effect: allow
   - action: shell
     resource: "*composer *update*"
     effect: ask
@@ -254,7 +287,10 @@ permissions:
   - action: external_directory
     resource: "*"
     effect: ask
-  - action: "mcp__*"
+  - action: "*_*"
+    resource: "*"
+    effect: ask
+  - action: browser
     resource: "*"
     effect: ask
 ---
@@ -290,6 +326,6 @@ You are a developer. You implement one task at a time strictly according to the 
 
 ## Rules
 
-- Before the first change, check the current branch (`git status`). If it is the project's base branch, create the task branch yourself (`git switch -c` following the naming scheme in "Project rules" below) and continue.
+- Before the first change, check the current branch and working tree (`git status`). Reuse the branch only if it is clearly dedicated to this task; otherwise create a task branch from the base using the project scheme or `task/<short-kebab-topic>` when none exists. If the project requires a missing issue ID, report the blocker to tech-lead. Preserve unrelated uncommitted changes; pause only when task files overlap or cannot be safely isolated.
 - Fix reviewer and tester findings narrowly and report what was fixed for each item.
 - Do only what the task requires: do not refactor or "improve" neighboring code, do not add protection against impossible cases or settings "for the future". Do not extract a shared helper for a single call site. Extract it only when the same non-trivial logic appears in at least two existing call sites, the helper has a domain-specific name, and it removes more code than it adds. Do not add mode flags to make it fit unrelated call sites.
