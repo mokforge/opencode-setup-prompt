@@ -36,6 +36,7 @@ Changes to `opencode-setup-prompt.md` and `templates/agents/*.md` follow the sam
 - `templates/agents/*.md` contains the six role templates. Each holds its own complete `permissions` array, so permissions can be edited independently per agent.
 - A template body is shared by every project: do not put project facts into it. Project facts are added by the prompt to `## Project rules` when a project is set up.
 - A rule lives in one place only: shared rules in the `AGENTS.md` structure of the prompt, role rules in the role template. Do not repeat one in both.
+- Do not weaken the external access policy: the "External access and data boundaries" section in the `AGENTS.md` template and the external-access `ask` rules in all six agent templates are mandatory. Keep the global `permissions` block in the generated `.opencode/opencode.json`.
 - When you add, move, or renumber a step in the prompt, update every reference to it (search for `Step N`) and the matching verification item in Step 8.
 - If a change affects how the repository is used, update `README.md` in a separate commit.
 

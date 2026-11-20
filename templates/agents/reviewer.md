@@ -27,9 +27,6 @@ permissions:
     resource: "*git *push* :*"
     effect: deny
   - action: shell
-    resource: "*git *commit*"
-    effect: ask
-  - action: shell
     resource: "*git *reset*--hard*"
     effect: deny
   - action: shell
@@ -71,9 +68,195 @@ permissions:
   - action: shell
     resource: "*sudo*"
     effect: deny
+  - action: shell
+    resource: "*://*"
+    effect: ask
+  - action: shell
+    resource: "*git *clone*"
+    effect: ask
+  - action: shell
+    resource: "*git *fetch*"
+    effect: ask
+  - action: shell
+    resource: "*git *pull*"
+    effect: ask
+  - action: shell
+    resource: "*git *submodule*"
+    effect: ask
+  - action: shell
+    resource: "*git *ls-remote*"
+    effect: ask
+  - action: shell
+    resource: "*git *remote *update*"
+    effect: ask
+  - action: shell
+    resource: "*curl *"
+    effect: ask
+  - action: shell
+    resource: "*wget *"
+    effect: ask
+  - action: shell
+    resource: "*ssh *"
+    effect: ask
+  - action: shell
+    resource: "*scp *"
+    effect: ask
+  - action: shell
+    resource: "*sftp *"
+    effect: ask
+  - action: shell
+    resource: "*telnet *"
+    effect: ask
+  - action: shell
+    resource: "*ftp *"
+    effect: ask
+  - action: shell
+    resource: "*nc *"
+    effect: ask
+  - action: shell
+    resource: "*netcat *"
+    effect: ask
+  - action: shell
+    resource: "*rsync *"
+    effect: ask
+  - action: shell
+    resource: "*psql *"
+    effect: ask
+  - action: shell
+    resource: "*mysql *"
+    effect: ask
+  - action: shell
+    resource: "*mariadb *"
+    effect: ask
+  - action: shell
+    resource: "*mongosh *"
+    effect: ask
+  - action: shell
+    resource: "*mongo *"
+    effect: ask
+  - action: shell
+    resource: "*redis-cli *"
+    effect: ask
+  - action: shell
+    resource: "*sqlcmd *"
+    effect: ask
+  - action: shell
+    resource: "*sqlplus *"
+    effect: ask
+  - action: shell
+    resource: "*gh *"
+    effect: ask
+  - action: shell
+    resource: "*glab *"
+    effect: ask
+  - action: shell
+    resource: "*rclone *"
+    effect: ask
+  - action: shell
+    resource: "*gsutil *"
+    effect: ask
+  - action: shell
+    resource: "*install*"
+    effect: ask
+  - action: shell
+    resource: "*pip *download*"
+    effect: ask
+  - action: shell
+    resource: "*uv *add*"
+    effect: ask
+  - action: shell
+    resource: "*uv *sync*"
+    effect: ask
+  - action: shell
+    resource: "*uv *lock*"
+    effect: ask
+  - action: shell
+    resource: "*poetry *add*"
+    effect: ask
+  - action: shell
+    resource: "*poetry *update*"
+    effect: ask
+  - action: shell
+    resource: "*poetry *lock*"
+    effect: ask
+  - action: shell
+    resource: "*npm *ci*"
+    effect: ask
+  - action: shell
+    resource: "*npm *publish*"
+    effect: ask
+  - action: shell
+    resource: "*npx *"
+    effect: ask
+  - action: shell
+    resource: "*yarn *add*"
+    effect: ask
+  - action: shell
+    resource: "*pnpm *add*"
+    effect: ask
+  - action: shell
+    resource: "*cargo *add*"
+    effect: ask
+  - action: shell
+    resource: "*cargo *build*"
+    effect: ask
+  - action: shell
+    resource: "*cargo *test*"
+    effect: ask
+  - action: shell
+    resource: "*go *get*"
+    effect: ask
+  - action: shell
+    resource: "*go *mod *"
+    effect: ask
+  - action: shell
+    resource: "*mvn *"
+    effect: ask
+  - action: shell
+    resource: "*gradle *"
+    effect: ask
+  - action: shell
+    resource: "*composer *update*"
+    effect: ask
+  - action: shell
+    resource: "*docker *pull*"
+    effect: ask
+  - action: shell
+    resource: "*docker *push*"
+    effect: ask
+  - action: shell
+    resource: "*docker *login*"
+    effect: ask
+  - action: shell
+    resource: "*kubectl *"
+    effect: ask
+  - action: shell
+    resource: "*helm *"
+    effect: ask
+  - action: shell
+    resource: "*terraform *"
+    effect: ask
+  - action: shell
+    resource: "*ansible*"
+    effect: ask
+  - action: shell
+    resource: "*aws *"
+    effect: ask
+  - action: shell
+    resource: "*gcloud *"
+    effect: ask
   - action: webfetch
     resource: "*"
-    effect: allow
+    effect: ask
+  - action: websearch
+    resource: "*"
+    effect: ask
+  - action: external_directory
+    resource: "*"
+    effect: ask
+  - action: "mcp__*"
+    resource: "*"
+    effect: ask
   - action: skill
     resource: "security-review"
     effect: allow

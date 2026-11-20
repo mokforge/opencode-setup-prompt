@@ -1,6 +1,6 @@
 # OpenCode Setup Prompt
 
-One prompt that turns any repository into an OpenCode project with a six-agent team (`tech-lead`, `analyst`, `architect`, `developer`, `reviewer`, `tester`), optional skills, and a mandatory security review gate.
+One prompt that turns any repository into an OpenCode project with a six-agent team (`tech-lead`, `analyst`, `architect`, `developer`, `reviewer`, `tester`), optional skills, a mandatory security review gate, and a deny-by-default external access policy.
 
 ## Install
 
@@ -51,6 +51,10 @@ C4 **L2** shows deployable containers in a software system, while **L3** shows c
 ## Security review via a skill
 
 `security-review` is installed in every setup and is mandatory for the reviewer and tech-lead. It checks SQL injection, broken access control (IDOR/BOLA), authentication and sessions, secrets, XSS/SSRF, path traversal, unsafe deserialization, file handling, cryptography, sensitive data in logs and errors, dependencies, CI/CD and platform configuration. The reviewer must include a security section in every review, and the tech-lead applies the same checklist as the acceptance gate. Agents load it through the native `skill` tool; the templates contain invocation instructions, **not** duplicated security grammar.
+
+## External access policy
+
+Every generated `.opencode/AGENTS.md` contains a deny-by-default policy for anything outside the repository: external files, the internet and external APIs, MCP servers, Confluence, GitLab, databases and remote services, uploads, `git push`, dependency downloads and commands that may use the network. Agents must ask the user before such an action and name the resource, purpose, actions and data that would leave the repository. The role templates enforce the main gates with OpenCode `ask` permissions (`webfetch`, `websearch`, `external_directory`, MCP tools, remote git, package installs and common network commands), and the generated `.opencode/opencode.json` carries the same global tool gates for built-in and future agents; local `git commit` stays allowed and `git push` asks. This is not a sandbox: shell scripts and tools not covered by a rule can bypass the patterns, and `--auto` auto-approves `ask`; the instruction remains mandatory and these limits are stated in the policy.
 
 ## Requirements
 
