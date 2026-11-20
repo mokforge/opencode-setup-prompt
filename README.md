@@ -37,7 +37,7 @@ Run the same command any time to update an existing setup. The agent keeps your 
 - Documentation root: `.opencode/docs/` by default, or a custom path chosen during setup. It holds requirements, ADRs, architecture, and C4 / sequence diagrams, plus the page types your project needs. If documentation already exists, you choose whether agents keep it as it is, use the standard for new documents, or convert it.
 - `.opencode/skills/`: the skills you selected, including the optional PlantUML diagram and Confluence skills, plus the mandatory `security-review` and, when documentation is maintained, `technical-writing`.
 
-`tech-lead` is set as the default agent (`default_agent` in `.opencode/opencode.json`), so OpenCode starts with it. Describe a task: it creates a branch and delegates to the other agents.
+`tech-lead` is set as the default agent (`default_agent` in `.opencode/opencode.json`), so OpenCode starts with it. Describe a task: it creates a branch, delegates to the existing agents, and accepts the result. It does not implement the task itself and never creates new agents or roles.
 
 Setup also inspects existing root and nested `AGENTS.md` rules, configured MCP servers and skills outside `.opencode/skills`. MCP settings and user-authored rules are preserved; project-local skills are moved into `.opencode/skills/` when you approve, a missing `SKILL.md` is created from the existing files, and all generated or moved prose is translated into the selected language.
 
