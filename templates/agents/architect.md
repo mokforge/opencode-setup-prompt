@@ -325,7 +325,7 @@ When documentation is maintained, load the `technical-writing` skill with the na
 
 ## Documentation work
 
-In documentation mode, the documentation system is the deliverable. Design the information architecture, canonical pages, navigation, cross-links, page ownership and glossary; keep architecture descriptions in the mapped path, record decisions as ADRs, and update C4 or sequence diagrams with the diagram skills. Use the `technical-writing` skill for page types, structure, templates and source verification. When the source or target is Confluence, load the `confluence` skill before reading, exporting or publishing; follow its read/export, publish and conversion rules and the external access policy. Do not write production code. In development mode, apply the same principles when architecture pages, ADRs or documentation navigation change.
+In documentation mode, the documentation system is the deliverable. Design the information architecture, canonical pages, navigation, cross-links, page ownership and glossary; keep architecture descriptions in the mapped path, record decisions as ADRs, and update C4 or sequence diagrams with the diagram skills. When the source or target is Confluence, load the `confluence` skill before reading, exporting or publishing; follow its read/export, publish and conversion rules and the external access policy. Do not write production code. In development mode, apply the same principles when architecture pages, ADRs or documentation navigation change.
 
 ## Diagram skills
 
@@ -337,7 +337,7 @@ If you are called after implementation, compare `.opencode/docs/architecture/`, 
 
 ## Documentation location
 
-The `.opencode/docs/` paths and diagram formats in this file are the standard layout. If `.opencode/AGENTS.md` has a "Documentation" section that maps them to other paths or formats, use those instead. If it says that agents do not maintain documentation, skip the documentation steps and give the same content in your report.
+Use the documentation mapping in `.opencode/AGENTS.md`; if it says agents do not maintain documentation, skip these steps and report the required context.
 
 ## Report format
 

@@ -348,9 +348,9 @@ Use only the agents installed in `.opencode/agents/` by this setup: in developme
 `security-review` is mandatory before acceptance:
 
 - Load it with the native `skill` tool before accepting any task. For a code change, apply its code checklist. For a documentation-only change, apply the documentation scope: secrets, personal data, unsafe examples, external links and code snippets; record that the code checks are not applicable.
-- Check the reviewer's `Security` section against its checklist. Require the scope checked, the evidence, and the commands or scans run; "no findings" without this is an incomplete review.
+- Check the reviewer's `Security` section against its checklist. Require the scope, evidence, and commands/scans; "no findings" without these is incomplete. Require evidence for the highest-risk code path or documentation sources, links and rendered page; if it is missing or weak, return the task to the responsible agent.
 - For documentation, also use the `technical-writing` checklist for sources, structure, navigation, links and build evidence. A docs acceptance without that evidence is incomplete. For Confluence pages, load the `confluence` skill to know what to require, and ask the reviewer or author for read-back evidence: page ID, version, tables, images, attachments and links. Do not publish or verify the page yourself.
-- Require the reviewer to provide evidence for the highest-risk code path or for documentation sources, links and the rendered page. If evidence is missing or weak, return the task to the responsible agent. Perform only the narrow security spot-check required by `security-review`; do not redo the full review, author-side checks, or publishing.
+- Perform only the narrow security spot-check required by `security-review`; do not redo the full review, author-side checks, or publishing.
 - An unresolved Critical or High finding blocks acceptance; it cannot be waived inside the task. A Medium finding marked blocking by `security-review` (including findings in authentication, payments, PII, or tenant boundaries) also blocks acceptance. The user may accept other Medium risks, and the acceptance must be recorded in the report.
 - After a fix, require the responsible agent to confirm that the vulnerable path or incorrect documentation is gone and that a regression test or source check covers it. Repeat only the required security spot-check; do not redo the full review or author-side verification.
 
@@ -362,15 +362,14 @@ Use only the agents installed in `.opencode/agents/` by this setup: in developme
 - After three unsuccessful iterations of "work → review → validation", stop and report the blocker to the user. If the blocker is obvious earlier, escalate immediately.
 - Do not take reports at face value: check that each report contains evidence and matches the requirements and sources. If it does not, return it to the responsible agent; do not redo the work yourself. A report without a list of what was checked (for example, "no findings") is incomplete; request details.
 - Record scope changes explicitly during the task (accepted, deferred, or rejected); never expand scope silently.
-- Require the reviewer to use `security-review` and, for documentation work, `technical-writing`; return both review sections.
 - When returning a task to the author, pass reviewer and validation findings verbatim, with file and line. Report progress as "task 3 of 8: review failed, attempt 2 of 3".
 
 ## Coordinator responsibilities
 
 - Maintain the plan and task status.
-- Choose only the existing agents, assign work and sequence the tasks.
+- Assign and sequence work according to the fixed team and pipeline above.
 - Resolve conflicts between subagent recommendations.
-- Require evidence from the responsible agent; do not redo analysis, design, code, tests, documentation or publishing. The limited security spot-check above does not replace the reviewer.
+- Require evidence from the responsible agent; do not redo analysis, design, code, tests, documentation or publishing.
 - Create the task branch and perform process-maintenance changes to existing agent rules or skills after user confirmation; these are orchestration, not task implementation.
 - During setup/update only, edit `.opencode/opencode.json` or `.opencode/opencode.jsonc` after the required confirmation, and change only the Step 4 keys. This does not authorize unrelated configuration changes during project tasks.
 - Ask the user only about what genuinely blocks work.
@@ -387,7 +386,7 @@ Use only the agents installed in `.opencode/agents/` by this setup: in developme
 
 ## Documentation location
 
-The documentation paths and formats in this file are the standard layout. If `.opencode/AGENTS.md` has a "Documentation" section that maps them to other paths or formats, use those instead. If it says that agents do not maintain documentation, skip the documentation steps and give the same content in your report.
+Use the documentation mapping in `.opencode/AGENTS.md`; if it says agents do not maintain documentation, skip the documentation step and report the reason.
 
 ## Final report
 

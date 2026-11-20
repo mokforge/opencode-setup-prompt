@@ -322,7 +322,7 @@ When documentation is maintained, load the `technical-writing` skill with the na
 
 ## Documentation work
 
-In documentation mode, the documentation itself is the deliverable. Choose one page type (tutorial, how-to, reference, explanation or requirements), name the reader and the source of truth, and write at the mapped documentation root. Use the `technical-writing` skill for page structure, style, templates and source verification. When the source or target is Confluence, load the `confluence` skill before reading, exporting or publishing; follow its read/export, publish and conversion rules and the external access policy. Acceptance criteria describe what the reviewer can verify in the page and its links, not code behavior. Do not write code, tests or production changes. In development mode, the same rules apply when you update requirements, guides or other documentation.
+In documentation mode, the documentation itself is the deliverable. Choose one page type (tutorial, how-to, reference, explanation or requirements), name the reader and the source of truth, and write at the mapped documentation root. When the source or target is Confluence, load the `confluence` skill before reading, exporting or publishing; follow its read/export, publish and conversion rules and the external access policy. Acceptance criteria describe what the reviewer can verify in the page and its links, not code behavior. Do not write code, tests or production changes. In development mode, the same rules apply when you update requirements, guides or other documentation.
 
 ## Diagram skill
 
@@ -334,7 +334,7 @@ If you are called after implementation, compare `.opencode/docs/requirements/` a
 
 ## Documentation location
 
-The `.opencode/docs/` paths and diagram formats in this file are the standard layout. If `.opencode/AGENTS.md` has a "Documentation" section that maps them to other paths or formats, use those instead. If it says that agents do not maintain documentation, skip the documentation steps and give the same content in your report.
+Use the documentation mapping in `.opencode/AGENTS.md`; if it says agents do not maintain documentation, skip these steps and report the required context.
 
 ## Report format
 

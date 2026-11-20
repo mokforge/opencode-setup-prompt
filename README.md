@@ -59,32 +59,30 @@ Choose documentation when the repository is the documentation source rather than
 - **`architect`** designs information architecture, architecture pages, ADRs and diagrams.
 - **`reviewer`** reviews accuracy, sources, structure, navigation, links, examples, style and documentation safety.
 
-The `technical-writing` skill teaches docs-as-code structure, Diátaxis page types, writing style, API/diagram documentation, review and maintenance. The analyst and architect use it for writing; the documentation reviewer and tech-lead use it for review and acceptance. It is mandatory whenever documentation is maintained. `developer` and `tester` are not created in this mode.
+`technical-writing` is required whenever documentation is maintained. Analyst and architect use it for writing; reviewer and tech-lead use it for review and acceptance. See [the skill](skills/technical-writing/SKILL.md) for its detailed guidance. `developer` and `tester` are not created in this mode.
 
 ## PlantUML diagrams via skills
 
 The catalog contains two separate skills:
 
-- **`plantuml-c4`** — C4 System Context (L1), Container (L2), and Component (L3) diagrams with the level in every file name (`C4_L1_...`, `C4_L2_...`, `C4_L3_...`); checks C4 scope and PlantUML syntax.
-- **`plantuml-sequence`** — sequence diagrams for API calls, events, branches, and failure scenarios.
+- **`plantuml-c4`** — authoring and validation for C4 diagrams; see [the skill](skills/plantuml-c4/SKILL.md).
+- **`plantuml-sequence`** — authoring and validation for interaction diagrams; see [the skill](skills/plantuml-sequence/SKILL.md).
 
 When you choose to maintain PlantUML documentation during setup, select the relevant PlantUML skills (the “relevant” or “all” options include them). OpenCode loads a selected skill through the native `skill` tool when the architect or analyst needs it; the agent templates contain invocation instructions, **not** duplicated PlantUML grammar. The PlantUML skills are installed according to your choice; `security-review` is always installed, and `technical-writing` is installed whenever documentation is maintained.
 
-C4 **L2** shows deployable containers in a software system, while **L3** shows components within a single container. Legacy diagrams that mix these levels must be reviewed and split when modified, without inventing missing architecture. Source diagrams remain editable `.puml` files for JetBrains PlantUML4Idea (plugin ID `7017`). Their syntax should be checked with PlantUML CLI and the IDE preview checked separately; using a local `!include <C4/...>` avoids network-only C4 dependencies.
-
 ## Confluence via a skill
 
-The optional `confluence` skill covers Confluence read/export and publishing. It preserves tables (including merged cells), images, attachments, links, code, callouts and macros; exports pages to Markdown with metadata and local attachments; and publishes Markdown back to Confluence with version-safe updates, attachment upload and read-back validation. Analyst, architect, reviewer and tech-lead can load it when the project uses Confluence. Credentials and external access follow the project policy; the skill never stores tokens in content.
+The optional [Confluence skill](skills/confluence/SKILL.md) covers read, export, conversion, publishing, and round-trip validation of rich page content. Analyst, architect, reviewer and tech-lead can load it when needed. External access still requires permission.
 
 ## Security review via a skill
 
-`security-review` is installed in every setup and is mandatory for the reviewer and tech-lead. It checks SQL injection, broken access control (IDOR/BOLA), authentication and sessions, secrets, XSS/SSRF, path traversal, unsafe deserialization, file handling, cryptography, sensitive data in logs and errors, dependencies, CI/CD and platform configuration. The reviewer must include a security section in every review, and the tech-lead applies the same checklist as the acceptance gate. In documentation mode the same skill is applied to documentation safety: secrets, personal data, unsafe examples, external links and code snippets. Agents load it through the native `skill` tool; the templates contain invocation instructions, **not** duplicated security grammar.
+`security-review` is installed in every setup and mandatory for reviewer and tech-lead. It applies to code/configuration changes and documentation safety. See [the skill](skills/security-review/SKILL.md) for categories and evidence requirements; templates contain invocation instructions rather than a duplicate checklist.
 
 ## External access policy
 
-Every generated `.opencode/AGENTS.md` contains a deny-by-default policy for resources outside the repository: external files, the internet, APIs, MCP, Confluence, databases, uploads, `git push`, and dependency downloads. Agents ask before such actions and name the resource, purpose, actions, and data that would leave the repository. OpenCode V2 gates web tools, browser access, external directories, MCP actions (`<server>_<tool>`), and known network commands with `ask`; the dynamic MCP action wildcard may also ask for some other underscore-named tools. Local verified offline checks are allowed. A documentation root outside the repository still needs explicit permission for each task because permission is not permanent. `git push` asks; commits require an explicit request.
+Generated projects default to repository-only work. External files, network/MCP/database use, dependency downloads, publishing and `git push` require scoped permission; an external documentation root needs permission per task. OpenCode V2 gates web/browser, external directories, MCP, and known network commands with `ask`.
 
-These permissions are not a sandbox. OpenCode shell commands run with the host user's filesystem and network authority, so command patterns are best-effort and path-scoped `edit` rules do not constrain shell writes. Role write scopes are workflow rules, not technical isolation. Do not use `--auto` to bypass approvals.
+These gates are best-effort, not a sandbox: shell has host filesystem and network authority, and path-scoped `edit` rules do not constrain shell writes. Do not use `--auto` to bypass approvals. See the setup prompt for the full policy.
 
 ## Requirements
 

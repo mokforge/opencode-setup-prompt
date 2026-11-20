@@ -36,8 +36,7 @@ Changes to `opencode-setup-prompt.md` and `templates/agents/*.md` follow the sam
 
 - `templates/agents/*.md` contains the six universal role templates. Development uses all six; documentation (docs-as-code) uses `tech-lead`, `analyst`, `architect` and `reviewer`. Do not add separate documentation copies of the agents; the prompt chooses which agents to create.
 - A template body is shared by every project: do not put project facts into it. Project facts are added by the prompt to `## Project rules` when a project is set up. Source templates stay in English; they are translated in the generated project.
-- A rule lives in one place only: shared rules in the `AGENTS.md` structure of the prompt, role rules in the role template. Do not repeat one in both.
-- Agent settings, permissions, and their verification have a single source of truth: `opencode-setup-prompt.md` and its universal templates. Do not maintain a second setup checklist here.
+- Keep one source for each rule: shared rules in the prompt's `.opencode/AGENTS.md` structure, role rules and runtime permissions in agent templates. Step 8 of the prompt is the single setup-verification checklist; do not duplicate it here.
 - When you add, move, or renumber a step in the prompt, update every reference to it (search for `Step N`) and the matching verification item in Step 8.
 - If a change affects how the repository is used, update `README.md` in a separate commit.
 
@@ -65,7 +64,6 @@ Run these checks before a commit:
 - The skill is written in English unless it is intentionally project-specific.
 - The skill can be distributed under the repository's MIT license.
 - The skill installs as `.opencode/skills/<skill-id>/` and its `SKILL.md` stays at the directory root.
-- Agent settings and permission behavior are verified through Step 8 of `opencode-setup-prompt.md`; do not add separate permission-validation scripts.
 - References between steps of the prompt (`Step N`, section names) still point to existing text, and the Step 8 checks cover any new behavior.
 
 ## Commits
