@@ -1,6 +1,6 @@
 # OpenCode Setup Prompt
 
-One prompt that turns any repository into an OpenCode project with a six-agent team (`tech-lead`, `analyst`, `architect`, `developer`, `reviewer`, `tester`), optional skills, a mandatory security review gate, and a deny-by-default external access policy.
+One prompt that turns any repository into an OpenCode project for software development or documentation as code. Development uses six agents (`tech-lead`, `analyst`, `architect`, `developer`, `reviewer`, `tester`); documentation uses four (`tech-lead`, `analyst`, `architect`, `reviewer`). Both modes include optional skills, a mandatory security review gate, and a deny-by-default external access policy.
 
 ## Install
 
@@ -13,8 +13,10 @@ opencode --prompt "Set up this project using the OpenCode setup prompt at https:
 OpenCode opens with the task already sent. The agent clones this repository to a temporary directory, studies your project, and asks you:
 
 1. the **language** for generated files and reports (English or Russian);
-2. which optional **skills** to install (relevant, all, none, or a selection); the `security-review` skill is always installed;
-3. anything it cannot determine from the code.
+2. how OpenCode will be used: **development** or **documentation (docs-as-code)**;
+3. where documentation should live: `.opencode/docs/` or a custom path;
+4. which optional **skills** to install (relevant, all, none, or a selection); `security-review` is always installed, and `technical-writing` is installed whenever documentation is maintained;
+5. anything it cannot determine from the code.
 
 Then it creates everything inside `.opencode/` and removes the temporary clone. Nothing is committed or pushed; review the result with `git status` and `git diff`.
 
@@ -26,16 +28,27 @@ Set up this project using the OpenCode setup prompt at https://github.com/mokfor
 
 ## Run again
 
-Run the same command any time to update an existing setup. The agent keeps your rules, agents' `## Project rules`, existing skills, and docs, asks before changing anything unclear, and reports what it changed. If nothing needs changing, it changes nothing.
+Run the same command any time to update an existing setup. The agent keeps your rules, agents' `## Project rules`, existing skills, and docs, asks before changing anything unclear, and reports what it changed. If nothing needs changing, it changes nothing. It also asks the usage mode and documentation location again; switching between development and documentation asks before adding or removing `developer` and `tester`.
 
 ## What you get
 
 - `.opencode/AGENTS.md`: minimal rules for all agents, connected in `.opencode/opencode.json`.
-- `.opencode/agents/`: the six agents.
-- `.opencode/docs/`: folders for requirements, ADRs, architecture, and C4 / sequence diagrams. The setup asks whether agents should maintain documentation at all; if your project already has some, you choose whether they keep it as it is, use this standard for new documents, or convert the existing documents to it.
-- `.opencode/skills/`: the skills you selected, including the optional PlantUML diagram skills, plus the mandatory `security-review` skill.
+- `.opencode/agents/`: six development agents or four documentation agents. Documentation mode never creates `developer` or `tester`.
+- Documentation root: `.opencode/docs/` by default, or a custom path chosen during setup. It holds requirements, ADRs, architecture, and C4 / sequence diagrams, plus the page types your project needs. If documentation already exists, you choose whether agents keep it as it is, use the standard for new documents, or convert it.
+- `.opencode/skills/`: the skills you selected, including the optional PlantUML diagram skills, plus the mandatory `security-review` and, when documentation is maintained, `technical-writing`.
 
 `tech-lead` is set as the default agent (`default_agent` in `.opencode/opencode.json`), so OpenCode starts with it. Describe a task: it creates a branch and delegates to the other agents.
+
+## Documentation (docs-as-code) mode
+
+Choose documentation when the repository is the documentation source rather than an application. The setup creates four agents and configures the documentation root:
+
+- **`tech-lead`** coordinates the documentation pipeline and accepts with docs-build, link and style evidence.
+- **`analyst`** writes requirements, tutorials, how-to and reference pages.
+- **`architect`** designs information architecture, architecture pages, ADRs and diagrams.
+- **`reviewer`** reviews accuracy, sources, structure, navigation, links, examples, style and documentation safety.
+
+The `technical-writing` skill teaches docs-as-code structure, Diátaxis page types, writing style, API/diagram documentation, review and maintenance. The analyst and architect use it for writing; the documentation reviewer and tech-lead use it for review and acceptance. It is mandatory whenever documentation is maintained. `developer` and `tester` are not created in this mode.
 
 ## PlantUML diagrams via skills
 
@@ -44,13 +57,13 @@ The catalog contains two separate skills:
 - **`plantuml-c4`** — C4 System Context (L1), Container (L2), and Component (L3) diagrams with the level in every file name (`C4_L1_...`, `C4_L2_...`, `C4_L3_...`); checks C4 scope and PlantUML syntax.
 - **`plantuml-sequence`** — sequence diagrams for API calls, events, branches, and failure scenarios.
 
-When you choose to maintain PlantUML documentation during setup, select the relevant PlantUML skills (the “relevant” or “all” options include them). OpenCode loads a selected skill through the native `skill` tool when the architect or analyst needs it; the agent templates contain invocation instructions, **not** duplicated PlantUML grammar. The PlantUML skills are installed according to your choice; `security-review` is always installed.
+When you choose to maintain PlantUML documentation during setup, select the relevant PlantUML skills (the “relevant” or “all” options include them). OpenCode loads a selected skill through the native `skill` tool when the architect or analyst needs it; the agent templates contain invocation instructions, **not** duplicated PlantUML grammar. The PlantUML skills are installed according to your choice; `security-review` is always installed, and `technical-writing` is installed whenever documentation is maintained.
 
 C4 **L2** shows deployable containers in a software system, while **L3** shows components within a single container. Legacy diagrams that mix these levels must be reviewed and split when modified, without inventing missing architecture. Source diagrams remain editable `.puml` files for JetBrains [PlantUML4Idea](https://plugins.jetbrains.com/plugin/7017-plantuml4idea/). Their syntax should be checked with PlantUML CLI and the IDE preview checked separately; using a local `!include <C4/...>` avoids network-only C4 dependencies.
 
 ## Security review via a skill
 
-`security-review` is installed in every setup and is mandatory for the reviewer and tech-lead. It checks SQL injection, broken access control (IDOR/BOLA), authentication and sessions, secrets, XSS/SSRF, path traversal, unsafe deserialization, file handling, cryptography, sensitive data in logs and errors, dependencies, CI/CD and platform configuration. The reviewer must include a security section in every review, and the tech-lead applies the same checklist as the acceptance gate. Agents load it through the native `skill` tool; the templates contain invocation instructions, **not** duplicated security grammar.
+`security-review` is installed in every setup and is mandatory for the reviewer and tech-lead. It checks SQL injection, broken access control (IDOR/BOLA), authentication and sessions, secrets, XSS/SSRF, path traversal, unsafe deserialization, file handling, cryptography, sensitive data in logs and errors, dependencies, CI/CD and platform configuration. The reviewer must include a security section in every review, and the tech-lead applies the same checklist as the acceptance gate. In documentation mode the same skill is applied to documentation safety: secrets, personal data, unsafe examples, external links and code snippets. Agents load it through the native `skill` tool; the templates contain invocation instructions, **not** duplicated security grammar.
 
 ## External access policy
 
