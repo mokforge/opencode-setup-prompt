@@ -20,5 +20,4 @@
 
    Current PlantUML releases also document `--check-syntax`. On a non-zero exit code or diagnostic, fix the source and rerun. Do not swallow errors with `|| true`.
 
-3. Test an actual render to SVG in a temporary directory with the same PlantUML CLI or JAR; check that the output exists, is not an error image and is readable. Do not commit generated images unless requested.
-4. Preview the source in PlantUML4Idea. When no CLI, JAR or IDE is available, record which checks were not executed. Never claim successful rendering without execution.
+3. Preview the source in PlantUML4Idea. Do not export image files unless explicitly requested. When no CLI, JAR or IDE is available, record which checks were not executed. Never claim successful rendering without execution.
