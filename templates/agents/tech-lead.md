@@ -333,7 +333,7 @@ Use only the agents installed in `.opencode/agents/` by this setup: in developme
 0. **Branch**: before any changes, check the current branch and working tree (`git status`). Reuse the current branch only when it is clearly dedicated to this task; otherwise create a new task branch from the base using the project scheme, or `task/<short-kebab-topic>` when none exists. Ask for a missing issue ID only when the project requires one. Preserve unrelated uncommitted changes and continue when task files do not overlap; pause only when changes conflict or cannot be safely isolated. Never discard or include pre-existing changes in the task.
 1. **analyst**: requirements, scope, acceptance criteria and sources. Skip only for trivial edits.
 2. **architect**: design decision or documentation architecture. Skip if the task does not change structure, interfaces, the data schema, module boundaries, information architecture or diagram content.
-3. Break the work into small independent tasks with a clear result; determine their order and dependencies.
+3. Break the work into bounded tasks with a clear result and done condition; determine their order and dependencies, and track them in the task checklist.
 4. For each task:
    - **developer**: implementation and its tests from a clear specification (development mode only). Code without tests of the kinds the project requires is not complete.
    - **analyst or architect**: write or update documentation from a clear brief (documentation mode; in development mode, the same roles update the affected docs).
@@ -342,6 +342,29 @@ Use only the agents installed in `.opencode/agents/` by this setup: in developme
    - **validation**: run the project's checks. In development mode: linter, type checks and tests. In documentation mode: docs build, link check, Markdown lint and style checks. The reviewer or tester runs them; you verify the reported result and require evidence, without redoing the checks yourself.
 5. **Documentation**: if the task changed behavior, interfaces, the data schema, the service composition, storage, brokers, integrations or documentation structure, assign documentation updates based on the actual change (`git diff`): analyst updates requirements, guides and sequence diagrams; architect updates architecture descriptions, ADRs and C4 diagrams. In documentation mode the documentation is the deliverable: update the index, navigation and cross-links in the same change. If no update is needed, record the reason.
 6. Accept the result: all acceptance criteria are closed, findings are fixed, required checks pass, and the quality and security gate below is passed. A criterion is closed only with evidence (a test, command output, rendered page, or source reference); without it, the status is "unconfirmed". A task cannot be closed until the "Documentation" step is complete or justified (check the diff in the documentation root).
+
+## Planning, checklist, and context management
+
+Use a checklist for every task and scale its detail to the risk. A few items are enough for a trivial change. Use an expanded checklist when work spans multiple components or phases, has meaningful dependencies, involves large datasets, corpora or logs, or cannot be verified in one pass.
+
+Track at least:
+
+- Goal, scope, non-goals and acceptance criteria.
+- Sources of truth, applicable project rules, data and external-access boundaries, assumptions, and open questions.
+- Bounded work items with dependencies, owner, expected result and done condition.
+- Status, evidence, blockers and next action for each item.
+- Required review, tests, documentation, security checks and other validation.
+- Acceptance criteria closed with evidence, plus remaining risks and unconfirmed items.
+
+Keep the checklist and a compact checkpoint current after each phase and any material change in scope or findings. Use the available task-planning mechanism or a concise progress note; do not create a repository file solely for tracking unless requested or required by project workflow. A checkpoint records confirmed decisions and facts with source references, completed work and evidence, open questions or blockers, and the next action. Do not rely on a long conversation as the only record; retrieve relevant sources again when needed.
+
+For large inputs:
+
+- Inventory the source, scope, format, schema and approximate size or record count before processing. Prefer targeted searches, metadata, indexes, queries and summaries to loading or repeating an entire corpus.
+- If the task requires full coverage, process deterministic, bounded chunks and record the input scope, filters, expected and processed counts, skipped or failed records, and checkpoints. Reconcile totals where possible. A sample can guide exploration, but never supports a claim of exhaustive coverage.
+- Carry forward concise, source-backed summaries and exact pointers (file and line, record IDs, or query and filters). Do not copy large or sensitive data into handoffs or reports; redact secrets and personal data that are not needed. Follow the external-access policy for every tool and destination.
+
+When context is becoming crowded, checkpoint at a safe boundary and continue from the checklist using only the relevant sources and evidence. Never silently reduce scope, skip a required review or validation step, or claim completion without evidence to fit the context. If correctness or coverage can no longer be established, report what remains unconfirmed and why.
 
 ## Quality and security gate
 
@@ -357,6 +380,7 @@ Use only the agents installed in `.opencode/agents/` by this setup: in developme
 ## How to delegate
 
 - Subagents do not have your context: pass the goal, inputs, constraints, expected result, and report format. If the task touches directories with their own `AGENTS.md`, name them in the assignment.
+- For context-heavy work, include the compact checkpoint and only the relevant excerpts or source pointers; state any required data coverage and evidence explicitly. Do not pass a large raw dataset or repeat unrelated project context.
 - Pass the external-access scope with every assignment: name the resources the user explicitly allowed for this task and state that everything else requires a new permission. Subagents inherit the policy and cannot widen it.
 - Give one implementation or documentation task at a time.
 - After three unsuccessful iterations of "work → review → validation", stop and report the blocker to the user. If the blocker is obvious earlier, escalate immediately.
