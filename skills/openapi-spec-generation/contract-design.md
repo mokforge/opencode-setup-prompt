@@ -17,7 +17,7 @@ An OpenAPI 3.1 document normally has:
 - `openapi` and `info` metadata.
 - `servers` only when the project provides verified server bases; relative paths are acceptable.
 - `paths` containing operations and their parameters, request bodies, responses, and security.
-- `components` for reusable schemas, parameters, responses, request bodies, and security schemes.
+- `components` for reusable schemas, parameters, headers, responses, request bodies, examples, and security schemes.
 - Top-level `security` only when the same requirement applies to the API by default.
 
 Minimal illustrative shape:
@@ -76,6 +76,20 @@ components:
 - Put request and response examples under the matching media type's `examples` map. Keep example values valid against their schemas and use synthetic, non-sensitive data.
 - Move repeated schemas, parameters, and response definitions into `components` and reference them locally with `$ref`.
 - Avoid duplicate or unused components. Do not create a component solely to avoid a small amount of clear repetition.
+
+### Comprehensive capability showcase
+
+Apply this section only when the user asks for a broad template or a synthetic demonstration of OpenAPI capabilities. It does not authorize adding fictional behavior to a contract for a real project:
+
+- For an existing API, include only methods, parameters, headers, media types, and responses verified in code or approved requirements. Do not add a full CRUD set or optional headers just because they are common.
+- For a synthetic showcase, label the API and its examples as fictional. The OpenAPI 3.1 Path Item operation keys are `get`, `put`, `post`, `delete`, `options`, `head`, `patch`, and `trace`; `CONNECT` is not an OpenAPI 3.1 Path Item operation.
+- Demonstrate required and optional path/query/header/cookie parameters accurately. Path parameters are always required. Put custom headers in `parameters`; model authentication with security schemes, and model `Accept`/`Content-Type` through media types rather than as ordinary parameters.
+- Show both required and optional request bodies only where the operation semantics allow them. `requestBody.required` controls whether the whole body may be omitted; the schema's `required` array controls which fields must appear when a body is sent. Use distinct create, full-replacement, and partial-update schemas when their semantics differ.
+- Include only the request media types supported by the operation. A capability showcase may illustrate JSON, a verified PATCH format, or `multipart/form-data`; for multipart, put fields in the body schema and describe per-part media types with `encoding`. In OpenAPI 3.1, model file content with JSON Schema keywords such as `contentMediaType` (and `contentEncoding` when appropriate); do not mechanically copy OpenAPI 3.0 `format: binary` examples.
+- Document successful and relevant error responses, including response headers under the matching response. A `HEAD` response has no body; `204` and `304` responses also have no body. Use response links only when they describe a real or explicitly illustrative follow-up operation.
+- `OPTIONS` may document the supported methods with `Allow`, but it does not guarantee that a browser's CORS preflight will succeed. CORS depends on server/deployment configuration.
+- `TRACE` is generally disabled and can expose sensitive request headers if reflected. Do not add it to a real contract without explicit verification and security review. If included solely to demonstrate syntax, mark it as illustrative and use a harmless request example with no credentials, cookies, or sensitive data.
+- Reuse local components for repeated headers, parameters, schemas, responses, examples, and security schemes where useful. Keep every example synthetic and valid against its schema.
 
 ### Complete PATCH operation example
 

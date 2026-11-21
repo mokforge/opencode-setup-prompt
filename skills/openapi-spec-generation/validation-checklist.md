@@ -7,11 +7,13 @@ Apply the checks that fit the task and the project's configured toolchain. Disti
 - The declared OpenAPI version matches the project workflow.
 - The document parses as YAML or JSON using the repository's configured parser.
 - Every path item contains at least one operation; each operation ID is unique.
+- HTTP methods match the implementation or approved design. For an explicitly requested showcase, keep synthetic methods clearly illustrative; do not add `CONNECT` as an OpenAPI 3.1 Path Item operation.
 - Every path parameter is declared and required.
 - Every supported path/query/header/cookie input is in the correct parameter location; request-body fields and requiredness are modeled in the schema.
-- Each request body uses a supported media type and matches the actual method semantics, especially for `PATCH`.
+- Each request body uses a supported media type, has accurate `requestBody.required` and field-level requiredness, and matches the actual method semantics, especially for `PATCH` and multipart encoding.
 - Request and response examples are under the correct media type and validate against their schemas. Response headers are declared under the applicable response.
 - Every local `$ref` resolves. No unintended remote reference is introduced.
+- Response links resolve to the intended operation and parameter names.
 - Reusable components are used consistently and no stale duplicate definitions remain.
 
 ## Contract accuracy
@@ -21,6 +23,7 @@ Apply the checks that fit the task and the project's configured toolchain. Disti
 - Success and error responses cover the documented behavior without inventing status codes or payloads.
 - Examples validate against their schemas and contain only synthetic data.
 - Server bases are present only when verified; illustrative samples use relative paths.
+- `HEAD`, `204`, and `304` responses have no body. `OPTIONS` does not imply CORS support; `TRACE` is present only when justified and does not expose sensitive headers.
 
 ## Security and compatibility
 
