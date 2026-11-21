@@ -8,6 +8,9 @@ Apply the checks that fit the task and the project's configured toolchain. Disti
 - The document parses as YAML or JSON using the repository's configured parser.
 - Every path item contains at least one operation; each operation ID is unique.
 - Every path parameter is declared and required.
+- Every supported path/query/header/cookie input is in the correct parameter location; request-body fields and requiredness are modeled in the schema.
+- Each request body uses a supported media type and matches the actual method semantics, especially for `PATCH`.
+- Request and response examples are under the correct media type and validate against their schemas. Response headers are declared under the applicable response.
 - Every local `$ref` resolves. No unintended remote reference is introduced.
 - Reusable components are used consistently and no stale duplicate definitions remain.
 
@@ -26,6 +29,12 @@ Apply the checks that fit the task and the project's configured toolchain. Disti
 - No secrets, customer data, private hostnames, external links, or unapproved server addresses appear in the contract or examples.
 - Breaking changes to required fields, enums, response codes, or security are identified and reported.
 
+## Interactive execution
+
+- When Swagger UI or another interactive console is required, check that `servers`, parameters, request body, and security describe how the operation is actually called.
+- Do not add an `execute` field; `Try it out`/`Execute` is provided by the console, not OpenAPI.
+- Report reachability, authentication, CORS, or console configuration that could not be verified. Do not claim a live call was tested unless it was authorized and actually performed.
+
 ## Completion report
 
-Report changed contract and source files, the chosen source of truth, the OpenAPI version, local validation commands and results, SDK outputs if requested, and any unresolved or unverified areas.
+Report changed contract and source files, the chosen source of truth, the OpenAPI version, local validation commands and results, interactive-execution prerequisites or gaps when relevant, SDK outputs if requested, and any unresolved or unverified areas.
