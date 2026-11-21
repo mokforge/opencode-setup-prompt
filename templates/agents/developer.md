@@ -303,8 +303,9 @@ You are a developer. You implement one task at a time strictly according to the 
 2. Study the surrounding code: style, conventions, reusable utilities. Follow them.
 3. Implement the minimum necessary; do not change anything you notice outside the task, but list it in the report.
 4. Write tests together with the code. Cover every behavior you add or change with unit tests, and add the other kinds of tests the project uses ("Testing" in `.opencode/AGENTS.md`) when the specification or the change requires them. Put them where the project keeps tests and follow the naming and style of existing tests. Cover the main scenario, edge cases, and errors; the tests must fail when the new behavior is broken.
-5. Run the linter, type checking, and relevant tests using the project's commands. Fix what you broke.
-6. If you change the data schema, write a migration the way the project does it (with rollback if the tool supports it).
+5. Keep tests CI-safe and independent of the developer's machine. Do not rely on a personal `.env`, undeclared shell variables or real secrets. Supply settings through project test fixtures or framework-native overrides/mocks with deterministic, non-secret values. Unit tests must not call live services; integration tests must use isolated test services and project-approved test configuration. When testing configuration loading itself, use controlled temporary test configuration (for example, a temporary `.env`) rather than mocking the loader. Do not modify, move or delete the user's `.env`; verify tests with the CI test setup or an isolated environment where personal `.env` values are unavailable.
+6. Run the linter, type checking, and relevant tests using the project's commands. Fix what you broke.
+7. If you change the data schema, write a migration the way the project does it (with rollback if the tool supports it).
 
 ## Standards
 

@@ -1,6 +1,6 @@
 # OpenCode Setup Prompt
 
-One prompt that turns any repository into an OpenCode project for software development or documentation as code. Development uses six agents (`tech-lead`, `analyst`, `architect`, `developer`, `reviewer`, `tester`); documentation uses four (`tech-lead`, `analyst`, `architect`, `reviewer`). Both modes include optional skills, a mandatory security review gate, and a deny-by-default external access policy.
+One prompt that turns any repository into an OpenCode project for software development or documentation as code. Development uses six agents (`tech-lead`, `analyst`, `architect`, `developer`, `reviewer`, `tester`); documentation uses four (`tech-lead`, `analyst`, `architect`, `reviewer`). Both modes include optional skills, a mandatory security review gate, and a configurable project-scoped external-access profile with strict access as the default.
 
 ## Install
 
@@ -15,9 +15,11 @@ OpenCode opens with the task already sent. The agent clones this repository to a
 1. the **language** for generated files and reports (English, Russian, or a custom language);
 2. how OpenCode will be used: **development** or **documentation (docs-as-code)**;
 3. where documentation should live: `.opencode/docs/` or a custom path;
-4. which optional **skills** to install (relevant, all, none, or a selection); `security-review` is always installed, and `technical-writing` is installed whenever documentation is maintained;
-5. how to handle configured MCP servers, if any;
-6. any decision that is genuinely blocking and cannot be determined from the code.
+4. the **external-access profile**: strict, public web research, or a custom HTTPS web allowlist;
+5. if the project is empty, which initial **project structure** and approach to plan for, with options for the selected mode;
+6. which optional **skills** to install (relevant, all, none, or a selection); `security-review` is always installed, and `technical-writing` is installed whenever documentation is maintained;
+7. how to handle configured MCP servers, if any;
+8. any decision that is genuinely blocking and cannot be determined from the code.
 
 Template-derived files and newly installed catalog skills use the selected language. Existing user-authored rules and kept skills stay in their current language unless you explicitly request translation. Setup files go in `.opencode/`; the chosen documentation root and an explicitly approved skill move are documented exceptions. The temporary clone is removed. Nothing is committed or pushed; review the result with `git status` and `git diff`.
 
@@ -27,7 +29,7 @@ For unattended setup, include this instruction in the prompt:
 Use unattended setup defaults. Do not ask non-blocking questions; preserve conflicting or user-owned content and report anything skipped.
 ```
 
-Unattended setup honors explicit choices in your prompt and uses defaults only for omitted preferences. It still pauses for genuinely blocking business decisions or external/destructive actions that were not explicitly authorized.
+Unattended setup honors explicit choices in your prompt and uses defaults only for omitted preferences. New setups default to strict external access; updates preserve the existing profile unless you explicitly change it. Empty-project structure is recorded as a plan; the setup does not create an application scaffold or install dependencies. It still pauses for genuinely blocking business decisions or external/destructive actions that were not explicitly authorized.
 
 Already running OpenCode? Send the same sentence as a message:
 
@@ -37,7 +39,7 @@ Set up this project using the OpenCode setup prompt at https://github.com/mokfor
 
 ## Run again
 
-Run the same command any time to update an existing setup. In interactive mode, the agent shows the per-file change summary and waits for confirmation; it preserves your rules, agents' `## Project rules`, existing skills, and docs. In unattended mode, it applies only unambiguous, non-destructive changes and reports skipped conflicts. If nothing needs changing, it changes nothing. Existing mode and documentation choices are reused by default; switching modes or moving skills requires confirmation.
+Run the same command any time to update an existing setup. In interactive mode, the agent shows the per-file change summary and waits for confirmation; it preserves your rules, agents' `## Project rules`, existing skills, docs, and external-access profile. Changing the profile requires confirmation. In unattended mode, it applies only unambiguous, non-destructive changes and reports skipped conflicts. If nothing needs changing, it changes nothing. Existing mode, documentation and security choices are reused by default; switching modes or moving skills requires confirmation.
 
 ## What you get
 
@@ -45,10 +47,15 @@ Run the same command any time to update an existing setup. In interactive mode, 
 - `.opencode/agents/`: six development agents or four documentation agents. Documentation mode never creates `developer` or `tester`.
 - Documentation root: `.opencode/docs/` by default, or a custom path chosen during setup. It holds requirements, ADRs, architecture, and C4 / sequence diagrams, plus the page types your project needs. In interactive mode, you choose whether agents keep existing documentation, use the root for new documents, or convert it; unattended setup keeps existing docs as source material.
 - `.opencode/skills/`: the skills you selected, including the optional PlantUML diagram and Confluence skills, plus the mandatory `security-review` and, when documentation is maintained, `technical-writing`.
+- For an empty project, `.opencode/AGENTS.md` records the user-selected starter structure as a plan, not an existing scaffold. The setup may create the standard empty documentation support directories, but does not invent a stack, create application source files or docs-framework configuration, or install dependencies.
 
 `tech-lead` is set as the default agent (`default_agent` in `.opencode/opencode.json`), so OpenCode starts with it. Describe a task: it creates a branch, delegates to the existing agents, and accepts the result. It does not implement the task itself and never creates new agents or roles.
 
 Setup also inspects existing root and nested `AGENTS.md` rules, configured MCP servers and skills outside `.opencode/skills`. MCP settings and user-authored rules are preserved; project-local skills are moved into `.opencode/skills/` only when approved, and a missing `SKILL.md` is created from existing files. Template-derived and catalog-skill prose uses the selected language; moved or existing user-authored skill content stays in its original language unless you request translation.
+
+## Empty projects
+
+If the selected mode has no established structure, setup asks for the intended approach and explains trade-offs. Development options include a minimal starter, layered/hexagonal architecture, or a modular/domain-oriented structure. Docs-as-code options include Markdown-first, reader/page-type information architecture, or a framework-backed site. It records the choice as a plan for the first tech-lead task; it does not generate application code, docs-site configuration, or dependencies during setup.
 
 ## Documentation (docs-as-code) mode
 
@@ -84,9 +91,11 @@ The optional [OpenAPI specification skill](skills/openapi-spec-generation/SKILL.
 
 ## External access policy
 
-Generated projects default to repository-only work. External files, network/MCP/database use, dependency downloads, publishing and `git push` require scoped permission; an external documentation root needs permission per task. OpenCode V2 gates web/browser, external directories, MCP, and known network commands with `ask`.
+Setup asks for an external-access profile. **Strict** (default) keeps external actions at `ask`. **Public research** allows `websearch` and `webfetch` for public pages, not APIs; **custom** allows only user-specified HTTPS `webfetch` patterns for public documentation pages and optionally public search. External directories, browser automation, MCP, databases, network shell commands, dependency downloads, uploads, publishing and `git push` still require approval.
 
-These gates are best-effort, not a sandbox: shell has host filesystem and network authority, and path-scoped `edit` rules do not constrain shell writes. Do not use `--auto` to bypass approvals. See the setup prompt for the full policy.
+Web search queries and fetch URLs leave the repository. Never include source code, configuration, logs, secrets, personal data or confidential project details in them. The profile is project-scoped, not a network sandbox: OpenCode cannot enforce that an allowed web request targets only public hosts. Use strict mode or external network controls when that boundary matters.
+
+Global permission gates remain `ask`; profile-specific web allows are added only to generated agent permissions. OpenCode's **Allow always** approval can save additional project-scoped allows; this setup does not manage those, so use one-time approvals for Strict. Shell has host filesystem and network authority, and path-scoped `edit` rules do not constrain shell writes. Do not use `--auto` to bypass approvals. See the setup prompt for the full policy.
 
 ## Requirements
 
