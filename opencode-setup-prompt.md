@@ -6,10 +6,10 @@ You are setting up this repository for software development or documentation as 
 
 Canonical setup repository: `https://github.com/mokforge/opencode-setup-prompt.git`
 
-The user may give you only this URL. Resolve the setup source before Step 0:
+Invocation wording, language, and format are not fixed. A reference to this setup prompt is sufficient; do not require a separate command phrase. The user may ask in their own words or language, provide only a URL to this repository or prompt, or provide/paste/attach a local prompt file. Resolve the setup source before Step 0:
 
-- If `opencode-setup-prompt.md` is already available locally, use its parent directory as the setup root. Its `skills/` directory is the skill catalog and its `templates/agents/` directory contains the agent templates. If the parent directory has no `skills/` or `templates/agents/` directory, clone the setup repository as described below.
-- If you were given the repository URL or only a link to the prompt, clone the repository into a temporary directory outside the target project, for example:
+- If the setup prompt is available in the current context, a provided file, or locally as `opencode-setup-prompt.md`, use it. Use its parent directory as the setup root when it contains `skills/` and `templates/agents/`; otherwise clone the canonical setup repository to obtain those assets.
+- If given a URL to this repository or a link to its prompt file, clone the repository into a temporary directory outside the target project, for example:
   ```bash
   tmp="$(mktemp -d)"
   git clone --depth 1 https://github.com/mokforge/opencode-setup-prompt.git "$tmp"
@@ -52,6 +52,8 @@ External access outside the selected project profile, publishing, credential cha
 ## Working mode: creation or update
 
 Determine the mode before Step 0. Check whether `.opencode/AGENTS.md`, files in `.opencode/agents/`, the `.opencode/docs/` directory, and the `.opencode/skills/` directory exist.
+
+Invocation wording and language do not determine the mode. Once this setup prompt is supplied or referenced, detect creation or update on every run solely from the target project's files below, whether the user describes the task in their own words, provides a URL, or points to a file. No exact phrase or extra rerun instruction is required. Repeating the setup does not imply unattended setup, a reset, or permission to replace user content. Unless the current request explicitly asks for unattended setup, use the regular interactive flow. In update mode, carry forward existing setup choices as defaults unless the user changes them.
 
 - If none of the agents or `AGENTS.md` exist: mode "creation"; follow the steps below as written.
 - If a setup already exists (even partially, even from earlier versions of this prompt): mode "update". The goal is not to create from scratch but to bring the existing setup to the current template while preserving all project-specific and user content.
