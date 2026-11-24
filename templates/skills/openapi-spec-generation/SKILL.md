@@ -22,7 +22,7 @@ Use this skill to create or maintain an OpenAPI 3.1 contract for a REST API. The
 ## Workflow
 
 1. Read project instructions, existing API contracts, route definitions, request/response models, authentication, error handling, and generation scripts.
-2. Determine whether the project uses design-first, code-first, or a hybrid workflow. Keep the existing source of truth; do not create a competing specification.
+2. Determine whether the project uses design-first, code-first, or a hybrid workflow. Follow existing source-of-truth conventions unless project instructions require a reviewer-approved contract before implementation; in that case, the approved contract is the normative baseline for intended behavior and generated code-first output is a validation artifact. Do not create competing sources of truth; surface conflicts between the required contract and the existing workflow before implementation.
 3. Use the repository's existing OpenAPI version, file format, path, naming, tooling, and conventions. If they are absent, make a proposed choice explicit rather than presenting it as an existing project rule.
 4. Add or update only operations supported by requirements or source code. For each operation, document all applicable input parameters, request-body fields, responses, and synthetic request/response examples. If the user explicitly asks for a synthetic capability showcase, follow the guidance in `contract-design.md` and keep it distinct from the project's actual contract.
 5. Reuse local components for repeated schemas, parameters, responses, and security schemes. Keep references resolvable within the contract.

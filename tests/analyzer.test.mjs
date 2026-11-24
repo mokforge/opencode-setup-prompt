@@ -902,18 +902,18 @@ test("development pipeline approves and hands off documentation before implement
   assert.match(techLead, /including trivial and one-line changes/i)
   assert.match(pipeline, /Never skip the analyst's impact assessment/i)
   assert.match(pipeline, /Never skip the architect's impact assessment/i)
-  assert.match(pipeline, /same approved baseline as the developer and tester/i)
+  assert.match(pipeline, /same approved local baseline as the developer and tester/i)
   assert.match(pipeline, /Do not assign implementation until the baseline is accepted/i)
-  assert.match(pipeline, /assignment prompt must include the approved requirements, acceptance criteria, current documentation relevant to the task/i)
-  assert.match(pipeline, /receive the same approved baseline as the developer and tester/i)
-  assert.match(pipeline, /receive the same approved requirements, current relevant documentation and acceptance criteria as the developer/i)
+  assert.match(pipeline, /assignment prompt must include the approved local requirements, acceptance criteria, current documentation relevant to the task/i)
+  assert.match(pipeline, /receive the same approved local baseline as the developer and tester/i)
+  assert.match(pipeline, /receive the same approved local requirements, current relevant documentation and acceptance criteria as the developer/i)
   assert.match(pipeline, /Do not assign post-implementation edits merely to make docs match code/i)
   assert.match(techLead, /Only the analyst and architect author or update project documentation/i)
   assert.match(techLead, /Route a requirements or acceptance-criteria gap to the analyst/i)
   assert.match(techLead, /If the developer discovers missing, incorrect or conflicting documentation, stop the affected implementation/i)
   assert.match(techLead, /## Blockers and decisions/)
   assert.match(techLead, /must not invent an answer or continue the affected work on an assumption/i)
-  assert.match(techLead, /never ask again for a question already answered in the current documentation/i)
+  assert.match(techLead, /never ask again for a recorded choice/i)
   assert.doesNotMatch(
     techLeadPermissions,
     /action:\s*edit\s+resource:\s*"\.opencode\/docs\/\*\*"\s+effect:\s*allow/,
@@ -943,7 +943,13 @@ test("development pipeline approves and hands off documentation before implement
     "utf8",
   )
 
-  assert.match(developer, /approved design baseline included in the assignment prompt/i)
+  assert.match(
+    developer,
+    /approved design baseline in the assignment prompt from the project's canonical documentation root recorded in `\.opencode\/AGENTS\.md`/i,
+  )
+  assert.match(developer, /canonical documentation root recorded in `\.opencode\/AGENTS\.md`/i)
+  assert.match(developer, /current reviewer-approved OpenAPI contract/i)
+  assert.match(developer, /implement strictly according to the approved OpenAPI contract/i)
   assert.match(developer, /Do not create, edit, move or delete project documentation/i)
   assert.match(
     developerPermissions,
@@ -967,11 +973,27 @@ test("development pipeline approves and hands off documentation before implement
   assert.match(analyst, /Do not guess, invent an answer or continue affected requirements work on an assumption/i)
   assert.match(architect, /Own the technical solution and its documentation/i)
   assert.match(tester, /same approved baseline the developer received/i)
+  assert.match(tester, /canonical documentation root recorded in `\.opencode\/AGENTS\.md`/i)
   assert.match(tester, /approved baseline as the source of expected behavior/i)
   assert.match(tester, /do not infer expected behavior from current code/i)
-  assert.match(reviewer, /include the same baseline given to the developer and tester/i)
+  assert.match(reviewer, /include the same local baseline given to the developer and tester/i)
   assert.match(reviewer, /report the exact question to tech-lead instead of guessing/i)
-  assert.match(reviewer, /compare the changed code and tests with the same documents/i)
+  assert.match(reviewer, /compare the changed code and tests with the same local documents/i)
+  assert.match(reviewer, /HTTP\/OpenAPI contract/i)
+  assert.match(reviewer, /canonical documentation root recorded in `\.opencode\/AGENTS\.md`/i)
+  assert.match(tester, /compare the implementation and tests with the approved OpenAPI/i)
+  assert.match(architect, /canonical documentation root from `\.opencode\/AGENTS\.md`/i)
+  assert.match(architect, /complete, current OpenAPI contract covers that service before implementation/i)
+  assert.match(architect, /<documentation root>\/openapi\//i)
+  assert.match(techLead, /reviewer approval of the complete OpenAPI contract before implementation/i)
+  assert.match(techLead, /canonical documentation root from `\.opencode\/AGENTS\.md`/i)
+  assert.match(analyst, /current accepted, non-superseded decisions as settled and binding/i)
+  assert.match(analyst, /Record every user decision about requirements.*selected option and its source\/status/i)
+  assert.match(architect, /not already settled by an active accepted ADR or project rule/i)
+  assert.match(architect, /if PostgreSQL is the accepted database, do not reopen PostgreSQL versus Redis/i)
+  assert.match(reviewer, /Decision continuity: compare the task and implementation with current accepted/i)
+  assert.match(techLead, /Treat current accepted, non-superseded user decisions as binding/i)
+  assert.match(techLead, /mark it accepted only when the user clearly chose it/i)
 
   const setupPrompt = await readFile(new URL("../opencode-setup-prompt.md", import.meta.url), "utf8")
   const normalizedSetupPrompt = setupPrompt.replace(/\s+/g, " ")
@@ -980,6 +1002,16 @@ test("development pipeline approves and hands off documentation before implement
     /Every development task, including trivial edits, must be orchestrated by tech-lead/i,
   )
   assert.match(normalizedSetupPrompt, /documentation is maintained in both usage modes/i)
+  assert.match(normalizedSetupPrompt, /openapi.*when a service has HTTP operations/i)
+  assert.match(normalizedSetupPrompt, /canonical local documentation/i)
+  assert.match(normalizedSetupPrompt, /external, pasted or other-repository documents are source material only/i)
+  assert.match(normalizedSetupPrompt, /Current accepted user decisions recorded in canonical documentation.*are binding by default/i)
+  assert.match(normalizedSetupPrompt, /A feature-scoped override does not change the project-wide decision/i)
+  const openapiSkill = await readFile(
+    new URL("../templates/skills/openapi-spec-generation/SKILL.md", import.meta.url),
+    "utf8",
+  )
+  assert.match(openapiSkill, /reviewer-approved contract before implementation/i)
   assert.match(
     normalizedSetupPrompt,
     /If any agent encounters missing, ambiguous, contradictory or unverified information.*it must not invent an answer/i,
