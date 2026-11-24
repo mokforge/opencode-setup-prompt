@@ -40,6 +40,18 @@ Changes to `opencode-setup-prompt.md`, `templates/agents/*.md`, and `templates/p
 - When you add, move, or renumber a step in the prompt, update every reference to it (search for `Step N`) and the matching verification item in Step 8.
 - If a change affects how the repository is used, update `README.md` in a separate commit.
 
+## Test suite
+
+Use Node.js 24.x for the test suite; it is verified with Node.js 24.18.0. The
+tests use Node's built-in test runner and import the plugin TypeScript files
+using Node's built-in TypeScript type stripping.
+
+```bash
+node --test tests/*.test.mjs
+```
+
+GitHub Actions runs this command on Node.js 24.x for pushes and pull requests.
+
 ## Automated checks
 
 Install the hooks once, then run them before a commit:
@@ -51,9 +63,11 @@ pre-commit run --all-files
 
 The hooks run `markdownlint-cli2`, `yamllint`, Prettier in check mode, basic YAML/whitespace checks, merge-conflict/case-conflict/large-file checks, and local `pygrep` checks for skill frontmatter/placeholders/primary mode.
 
+CI also runs `pre-commit run --all-files`; run it locally before opening a pull request.
+
 ## Manual checks
 
-Run these checks before a commit:
+Run these checks before a pull request:
 
 - Frontmatter parses as YAML, starts on the first line, and contains non-empty `name` and `description`.
 - The directory name and skill ID are unique under `templates/skills/`.
@@ -65,6 +79,7 @@ Run these checks before a commit:
 - The skill can be distributed under the repository's MIT license.
 - The skill installs as `.opencode/skills/<skill-id>/` and its `SKILL.md` stays at the directory root.
 - References between steps of the prompt (`Step N`, section names) still point to existing text, and the Step 8 checks cover any new behavior.
+- The development pipeline keeps requirements and relevant architecture decisions ahead of implementation, and hands the same approved baseline to the developer, tester, and reviewer.
 
 ## Commits
 

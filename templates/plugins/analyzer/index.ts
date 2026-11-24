@@ -2758,6 +2758,7 @@ async function collectConfigFiles(root: string): Promise<
     ".opencode/opencode.json",
     ".opencode/opencode.jsonc",
     ".opencode/plugins/analyzer/index.ts",
+    ".opencode/plugins/hooks/hooks.yml",
   ])
   let visitedDirectories = 0
 
@@ -2810,6 +2811,13 @@ async function collectConfigFiles(root: string): Promise<
       if (
         directory.endsWith(`${sep}.opencode${sep}plugins${sep}analyzer`) &&
         entry.name === "index.ts"
+      ) {
+        const safe = relativeSafePath(root, fullPath)
+        if (safe) paths.add(safe)
+      }
+      if (
+        directory.endsWith(`${sep}.opencode${sep}plugins${sep}hooks`) &&
+        entry.name === "hooks.yml"
       ) {
         const safe = relativeSafePath(root, fullPath)
         if (safe) paths.add(safe)
@@ -3245,9 +3253,10 @@ function isRelevantConfigPath(root: string, path: string): boolean {
     safe === ".opencode/AGENTS.md" ||
     safe === ".opencode/opencode.json" ||
     safe === ".opencode/opencode.jsonc" ||
-    safe.startsWith(".opencode/agents/") ||
-    safe.startsWith(".opencode/skills/") ||
-     safe === ".opencode/plugins/analyzer/index.ts"
+      safe.startsWith(".opencode/agents/") ||
+      safe.startsWith(".opencode/skills/") ||
+      safe === ".opencode/plugins/analyzer/index.ts" ||
+      safe === ".opencode/plugins/hooks/hooks.yml"
   )
 }
 

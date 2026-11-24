@@ -8,6 +8,8 @@ const MAX_CONFIG_LINES = 2_000
 const MAX_REMEMBERED_IDS = 2_000
 const MAX_REPORT_LENGTH = 8_000
 const MAX_ACTIVE_HOOKS = 4
+const MAX_PENDING_HOOK_EVENTS = 256
+const MAX_PENDING_PER_SESSION = 32
 
 export const SUPPORTED_EVENT_TYPES = [
   "session.created",
@@ -77,6 +79,7 @@ interface YamlLine {
   indent: number
   content: string
   line: number
+  raw: string
 }
 
 interface HookEvent {
@@ -142,6 +145,12 @@ export interface HookRuntimeState {
   generatedSessionOrder: string[]
   seenEvents: Set<string>
   seenEventOrder: string[]
+  queuedEventIDs: Set<string>
+  sessionQueues: Map<string, Promise<void>>
+  pendingBySession: Map<string, number>
+  queueWaiters: Array<() => void>
+  activeWaiters: Array<() => void>
+  pendingCount: number
   activeSessions: Set<string>
   activeCount: number
 }
@@ -206,6 +215,9 @@ function scalar(value: string, line: number): string | boolean {
   if (input === "false") return false
   if (input === "null" || input === "~" || input.startsWith("{")) {
     throw new Error(`Unsupported YAML value on line ${line}.`)
+  }
+  if (/^[&*!]/.test(input)) {
+    throw new Error(`YAML anchors, aliases, and tags are not supported on line ${line}.`)
   }
   if (input.startsWith('"')) {
     try {
@@ -313,22 +325,19 @@ class HooksYamlParser {
     if (sourceLines.length > MAX_CONFIG_LINES) {
       throw new Error(`hooks.yml exceeds ${MAX_CONFIG_LINES} lines.`)
     }
-    this.lines = sourceLines.flatMap((raw, index) => {
+    this.lines = sourceLines.map((raw, index) => {
       const indentationText = raw.match(/^[ \t]*/)?.[0] ?? ""
       if (indentationText.includes("\t")) {
         throw new Error(`Tabs are not supported for YAML indentation on line ${index + 1}.`)
       }
       const indentation = indentationText.length
       const content = stripComment(raw.slice(indentation)).trim()
-      if (!content || content === "---" || content === "...") return []
-      if (indentation % 2 !== 0) {
-        throw new Error(`Use two-space YAML indentation on line ${index + 1}.`)
-      }
-      return [{ indent: indentation, content, line: index + 1 }]
+      return { indent: indentation, content, line: index + 1, raw }
     })
   }
 
   parse(): HooksConfig {
+    this.skipIgnorable()
     const root = this.lines[this.index]
     if (!root || root.indent !== 0 || root.content !== "hooks:") {
       throw new Error("hooks.yml must start with a top-level `hooks:` mapping.")
@@ -337,7 +346,10 @@ class HooksYamlParser {
     const hooks: Record<string, HookDefinition[]> = {}
 
     while (this.index < this.lines.length) {
+      this.skipIgnorable()
+      if (this.index >= this.lines.length) break
       const eventLine = this.lines[this.index]
+      this.assertIndentation(eventLine)
       if (eventLine.indent !== 2 || eventLine.content.startsWith("-")) {
         throw new Error(`Expected an event under hooks: on line ${eventLine.line}.`)
       }
@@ -346,11 +358,16 @@ class HooksYamlParser {
       if (!SUPPORTED_EVENT_SET.has(configuredEvent)) {
         throw new Error(`Unsupported OpenCode V2 session event "${configuredEvent}" on line ${eventLine.line}.`)
       }
+      if (Object.hasOwn(hooks, configuredEvent)) {
+        throw new Error(`Duplicate event key "${configuredEvent}" on line ${eventLine.line}.`)
+      }
       this.index += 1
+      this.skipIgnorable()
       const next = this.lines[this.index]
       if (!next || next.indent !== 4) {
         throw new Error(`Event "${configuredEvent}" must contain at least one hook.`)
       }
+      this.assertIndentation(next)
       if (next.content !== "-" && !next.content.startsWith("- ")) {
         throw new Error(
           `Event "${configuredEvent}" must contain a YAML list of hooks on line ${next.line}.`,
@@ -358,7 +375,7 @@ class HooksYamlParser {
       }
 
       const definitions = this.parseHookList()
-      hooks[configuredEvent] = [...(hooks[configuredEvent] ?? []), ...definitions]
+      hooks[configuredEvent] = definitions
     }
 
     return { hooks }
@@ -366,37 +383,51 @@ class HooksYamlParser {
 
   private parseHookList(): HookDefinition[] {
     const definitions: HookDefinition[] = []
-    while (
-      this.index < this.lines.length &&
-      this.lines[this.index].indent === 4 &&
-      (this.lines[this.index].content === "-" ||
-        this.lines[this.index].content.startsWith("- "))
-    ) {
+    while (this.index < this.lines.length) {
+      this.skipIgnorable()
+      if (this.index >= this.lines.length) break
       const line = this.lines[this.index]
+      this.assertIndentation(line)
+      if (
+        line.indent !== 4 ||
+        (line.content !== "-" && !line.content.startsWith("- "))
+      ) {
+        break
+      }
       const hook = this.emptyHook()
+      const seenFields = new Set<string>()
       const firstField = line.content.slice(1).trim()
       this.index += 1
       if (firstField) {
         const [key, value] = splitPair(firstField, line.line)
-        this.assignField(hook, key, value, 6, line.line)
+        this.assignField(hook, key, value, 8, line.line, seenFields)
       }
-      this.parseHookFields(hook, 6)
+      this.parseHookFields(hook, 6, seenFields)
       definitions.push(this.finishHook(hook, line.line))
     }
     if (definitions.length === 0) throw new Error("An event hook list cannot be empty.")
     return definitions
   }
 
-  private parseHookFields(hook: HookDefinition, indent: number): void {
-    while (this.index < this.lines.length && this.lines[this.index].indent === indent) {
+  private parseHookFields(
+    hook: HookDefinition,
+    indent: number,
+    seenFields: Set<string>,
+  ): void {
+    while (this.index < this.lines.length) {
+      this.skipIgnorable()
+      if (this.index >= this.lines.length) break
       const line = this.lines[this.index]
+      this.assertIndentation(line)
+      if (line.indent !== indent) break
       if (line.content === "-" || line.content.startsWith("- ")) {
         throw new Error(`Unexpected list item on line ${line.line}.`)
       }
       const [key, value] = splitPair(line.content, line.line)
       this.index += 1
-      this.assignField(hook, key, value, indent + 2, line.line)
+      this.assignField(hook, key, value, indent + 2, line.line, seenFields)
     }
+    this.skipIgnorable()
     const next = this.lines[this.index]
     if (next && next.indent > indent) {
       throw new Error(`Unexpected YAML indentation on line ${next.line}.`)
@@ -409,7 +440,12 @@ class HooksYamlParser {
     value: string,
     listIndent: number,
     line: number,
+    seenFields: Set<string>,
   ): void {
+    if (seenFields.has(key)) {
+      throw new Error(`Duplicate hook field "${key}" on line ${line}.`)
+    }
+    seenFields.add(key)
     if (key === "enabled") {
       const parsed = scalar(value, line)
       if (typeof parsed !== "boolean") {
@@ -420,7 +456,15 @@ class HooksYamlParser {
     }
     if (key === "prompt") {
       if (!value) throw new Error(`Hook prompt must be a string on line ${line}.`)
-      const parsed = scalar(value, line)
+      let parsed: string | boolean
+      if (value === "|" || value === ">") {
+        parsed = this.parseBlockScalar(value, listIndent - 2, line)
+      } else {
+        if (/^[|>]/.test(value)) {
+          throw new Error(`Unsupported prompt block scalar indicator on line ${line}.`)
+        }
+        parsed = scalar(value, line)
+      }
       if (typeof parsed !== "string") {
         throw new Error(`Hook prompt must be a string on line ${line}.`)
       }
@@ -441,15 +485,63 @@ class HooksYamlParser {
     throw new Error(`Unknown hook field "${key}" on line ${line}.`)
   }
 
+  private parseBlockScalar(
+    style: "|" | ">",
+    parentIndent: number,
+    line: number,
+  ): string {
+    const values: string[] = []
+    let contentIndent: number | null = null
+    while (this.index < this.lines.length) {
+      const current = this.lines[this.index]
+      if (current.raw.trim() === "") {
+        values.push("")
+        this.index += 1
+        continue
+      }
+      if (current.indent <= parentIndent) break
+      if (contentIndent === null) contentIndent = current.indent
+      if (current.indent < contentIndent) {
+        throw new Error(`Inconsistent prompt indentation on line ${current.line} (block starts on line ${line}).`)
+      }
+      values.push(current.raw.slice(contentIndent))
+      this.index += 1
+    }
+
+    while (values.at(-1) === "") values.pop()
+    if (values.length === 0) return ""
+    if (style === "|") return `${values.join("\n")}\n`
+
+    let folded = ""
+    for (let index = 0; index < values.length; index += 1) {
+      folded += values[index]
+      if (index < values.length - 1) {
+        const moreIndented =
+          values[index].startsWith(" ") || values[index + 1].startsWith(" ")
+        folded +=
+          values[index] === "" ||
+          values[index + 1] === "" ||
+          moreIndented
+            ? "\n"
+            : " "
+      }
+    }
+    return `${folded}\n`
+  }
+
   private parseBlockList(indent: number): string[] {
     const values: string[] = []
-    while (
-      this.index < this.lines.length &&
-      this.lines[this.index].indent === indent &&
-      (this.lines[this.index].content === "-" ||
-        this.lines[this.index].content.startsWith("- "))
-    ) {
+    while (this.index < this.lines.length) {
+      this.skipIgnorable()
+      if (this.index >= this.lines.length) break
       const line = this.lines[this.index]
+      this.assertIndentation(line)
+      if (
+        line.indent !== indent ||
+        (line.content !== "-" && !line.content.startsWith("- "))
+      ) {
+        break
+      }
       const value = line.content.slice(1).trim()
       if (!value) throw new Error(`Empty list item on line ${line.line}.`)
       const parsed = scalar(value, line.line)
@@ -459,6 +551,7 @@ class HooksYamlParser {
       values.push(parsed)
       this.index += 1
     }
+    this.skipIgnorable()
     const next = this.lines[this.index]
     if (next && next.indent > indent) {
       throw new Error(`Nested YAML lists are not supported on line ${next.line}.`)
@@ -476,6 +569,18 @@ class HooksYamlParser {
     }
     return hook
   }
+
+  private skipIgnorable(): void {
+    while (this.index < this.lines.length && !this.lines[this.index].content) {
+      this.index += 1
+    }
+  }
+
+  private assertIndentation(line: YamlLine): void {
+    if (line.indent % 2 !== 0) {
+      throw new Error(`Use two-space YAML indentation on line ${line.line}.`)
+    }
+  }
 }
 
 export function parseHooksYaml(source: string): HooksConfig {
@@ -488,6 +593,12 @@ export function createHookRuntimeState(): HookRuntimeState {
     generatedSessionOrder: [],
     seenEvents: new Set(),
     seenEventOrder: [],
+    queuedEventIDs: new Set(),
+    sessionQueues: new Map(),
+    pendingBySession: new Map(),
+    queueWaiters: [],
+    activeWaiters: [],
+    pendingCount: 0,
     activeSessions: new Set(),
     activeCount: 0,
   }
@@ -536,6 +647,55 @@ export async function loadHookCatalog(ctx: HookPluginContext): Promise<HookCatal
     readCatalog(() => ctx.skill.list(), "id", "Skills"),
   ])
   return { agents, commands, skills }
+}
+
+function queueIsFull(state: HookRuntimeState, sessionID: string): boolean {
+  return (
+    state.pendingCount >= MAX_PENDING_HOOK_EVENTS ||
+    (state.pendingBySession.get(sessionID) ?? 0) >= MAX_PENDING_PER_SESSION
+  )
+}
+
+async function waitForQueueCapacity(
+  state: HookRuntimeState,
+  sessionID: string,
+  signal?: AbortSignal,
+): Promise<boolean> {
+  while (queueIsFull(state, sessionID)) {
+    if (signal?.aborted) return false
+    await new Promise<void>((resolve) => {
+      const wake = () => {
+        signal?.removeEventListener("abort", wake)
+        const index = state.queueWaiters.indexOf(wake)
+        if (index >= 0) state.queueWaiters.splice(index, 1)
+        resolve()
+      }
+      state.queueWaiters.push(wake)
+      signal?.addEventListener("abort", wake, { once: true })
+    })
+  }
+  return !signal?.aborted
+}
+
+function notifyQueueWaiters(state: HookRuntimeState): void {
+  for (const resolve of state.queueWaiters.splice(0)) resolve()
+}
+
+async function acquireActiveSlot(state: HookRuntimeState): Promise<void> {
+  if (state.activeCount < MAX_ACTIVE_HOOKS && state.activeWaiters.length === 0) {
+    state.activeCount += 1
+    return
+  }
+  await new Promise<void>((resolve) => state.activeWaiters.push(resolve))
+}
+
+function releaseActiveSlot(state: HookRuntimeState): void {
+  const next = state.activeWaiters.shift()
+  if (next) {
+    next()
+    return
+  }
+  state.activeCount = Math.max(0, state.activeCount - 1)
 }
 
 function available(id: string, values: Set<string> | null): boolean {
@@ -670,12 +830,12 @@ async function runHookTarget(
   })
 }
 
-export async function runHooksForEvent(
+async function executeHooksForEvent(
   ctx: HookPluginContext,
   config: HooksConfig,
   rawEvent: unknown,
-  state: HookRuntimeState = createHookRuntimeState(),
-  catalog: HookCatalog = { agents: null, commands: null, skills: null },
+  state: HookRuntimeState,
+  catalog?: HookCatalog,
 ): Promise<void> {
   const event = record(rawEvent) as HookEvent
   const eventType = stringValue(event.type)
@@ -697,75 +857,164 @@ export async function runHooksForEvent(
     if (state.seenEvents.has(eventID)) return
     rememberBounded(state.seenEvents, state.seenEventOrder, eventID)
   }
-  if (state.activeSessions.has(sessionID)) return
-  if (state.activeCount >= MAX_ACTIVE_HOOKS) {
-    console.warn(`[Hooks] Skipped ${eventType}; the active hook limit was reached.`)
+
+  const currentCatalog = catalog ?? await loadHookCatalog(ctx)
+  let parent: HookSession
+  try {
+    parent = record(unwrap(await ctx.session.get({ sessionID }))) as HookSession
+  } catch {
+    console.warn(`[Hooks] Skipped ${eventType}; session ${sessionID} is no longer available.`)
     return
   }
 
-  state.activeSessions.add(sessionID)
-  state.activeCount += 1
-  try {
-    let parent: HookSession
-    try {
-      parent = record(unwrap(await ctx.session.get({ sessionID }))) as HookSession
-    } catch {
-      console.warn(`[Hooks] Skipped ${eventType}; session ${sessionID} is no longer available.`)
-      return
+  const parentAgent = stringValue(parent.agent) ?? undefined
+  for (const hook of hooks) {
+    const skills = hook.skills.filter((id) => {
+      const exists = available(id, currentCatalog.skills)
+      if (!exists) console.warn(`[Hooks] Skill "${id}" is not available; skipping it.`)
+      return exists
+    })
+    const commands = hook.commands.filter((name) => {
+      const exists = available(name, currentCatalog.commands)
+      if (!exists) console.warn(`[Hooks] OpenCode command "${name}" is not available; skipping it.`)
+      return exists
+    })
+    const agents = hook.agents.filter((id) => {
+      const exists = available(id, currentCatalog.agents)
+      if (!exists) console.warn(`[Hooks] OpenCode agent "${id}" is not available; skipping it.`)
+      return exists
+    })
+
+    if (hook.agents.length > 0 && agents.length === 0) continue
+    if (
+      skills.length === 0 &&
+      commands.length === 0 &&
+      agents.length === 0 &&
+      !hook.prompt?.trim()
+    ) {
+      continue
     }
 
-    const parentAgent = stringValue(parent.agent) ?? undefined
-    for (const hook of hooks) {
-      const skills = hook.skills.filter((id) => {
-        const exists = available(id, catalog.skills)
-        if (!exists) console.warn(`[Hooks] Skill "${id}" is not available; skipping it.`)
-        return exists
-      })
-      const commands = hook.commands.filter((name) => {
-        const exists = available(name, catalog.commands)
-        if (!exists) console.warn(`[Hooks] OpenCode command "${name}" is not available; skipping it.`)
-        return exists
-      })
-      const agents = hook.agents.filter((id) => {
-        const exists = available(id, catalog.agents)
-        if (!exists) console.warn(`[Hooks] OpenCode agent "${id}" is not available; skipping it.`)
-        return exists
-      })
-
-      if (hook.agents.length > 0 && agents.length === 0) continue
-      if (
-        skills.length === 0 &&
-        commands.length === 0 &&
-        agents.length === 0 &&
-        !hook.prompt?.trim()
-      ) {
-        continue
-      }
-
-      const targets: Array<string | undefined> =
-        hook.agents.length > 0 ? agents : [parentAgent]
-      for (const agentID of targets) {
-        try {
-          await runHookTarget(
-            ctx,
-            sessionID,
-            parent,
-            eventType,
-            { ...hook, agents },
-            agentID,
-            skills,
-            commands,
-            state,
-          )
-        } catch (error) {
-          console.warn(`[Hooks] Hook for ${eventType} failed.`, error)
-        }
+    const targets: Array<string | undefined> =
+      hook.agents.length > 0 ? agents : [parentAgent]
+    for (const agentID of targets) {
+      try {
+        await runHookTarget(
+          ctx,
+          sessionID,
+          parent,
+          eventType,
+          { ...hook, agents },
+          agentID,
+          skills,
+          commands,
+          state,
+        )
+      } catch (error) {
+        console.warn(`[Hooks] Hook for ${eventType} failed.`, error)
       }
     }
-  } finally {
-    state.activeSessions.delete(sessionID)
-    state.activeCount = Math.max(0, state.activeCount - 1)
   }
+}
+
+interface QueuedHookEvent {
+  done: Promise<void>
+}
+
+export async function enqueueHooksForEvent(
+  ctx: HookPluginContext,
+  config: HooksConfig,
+  rawEvent: unknown,
+  state: HookRuntimeState,
+  catalog?: HookCatalog,
+  signal?: AbortSignal,
+): Promise<QueuedHookEvent | undefined> {
+  const event = record(rawEvent) as HookEvent
+  const eventType = stringValue(event.type)
+  if (!eventType) return undefined
+  const data = record(event.data)
+  const sessionID = stringValue(data.sessionID)
+
+  if (eventType === "session.deleted") {
+    if (sessionID) state.generatedSessions.delete(sessionID)
+    return undefined
+  }
+  if (!sessionID || eventHasHookMetadata(event) || state.generatedSessions.has(sessionID)) {
+    return undefined
+  }
+  const hooks = config.hooks[eventType]?.filter((hook) => hook.enabled && hasActions(hook))
+  if (!hooks?.length) return undefined
+
+  const eventID = stringValue(event.id)
+  if (
+    eventID &&
+    (state.seenEvents.has(eventID) || state.queuedEventIDs.has(eventID))
+  ) {
+    return undefined
+  }
+
+  if (!(await waitForQueueCapacity(state, sessionID, signal))) return undefined
+  if (signal?.aborted) return undefined
+  if (
+    eventID &&
+    (state.seenEvents.has(eventID) || state.queuedEventIDs.has(eventID))
+  ) {
+    return undefined
+  }
+  if (eventID) state.queuedEventIDs.add(eventID)
+  state.pendingCount += 1
+  state.pendingBySession.set(
+    sessionID,
+    (state.pendingBySession.get(sessionID) ?? 0) + 1,
+  )
+
+  let resolveDone!: () => void
+  const done = new Promise<void>((resolve) => {
+    resolveDone = resolve
+  })
+  const previous = state.sessionQueues.get(sessionID) ?? Promise.resolve()
+  let task!: Promise<void>
+  task = previous
+    .catch((error) => {
+      console.warn(`[Hooks] Previous queued event for session ${sessionID} failed.`, error)
+    })
+    .then(async () => {
+      await acquireActiveSlot(state)
+      state.pendingCount = Math.max(0, state.pendingCount - 1)
+      const remaining = (state.pendingBySession.get(sessionID) ?? 1) - 1
+      if (remaining <= 0) state.pendingBySession.delete(sessionID)
+      else state.pendingBySession.set(sessionID, remaining)
+      notifyQueueWaiters(state)
+      state.activeSessions.add(sessionID)
+      try {
+        await executeHooksForEvent(ctx, config, rawEvent, state, catalog)
+      } catch (error) {
+        console.warn(`[Hooks] Event handling failed for ${eventType}.`, error)
+      } finally {
+        state.activeSessions.delete(sessionID)
+        releaseActiveSlot(state)
+      }
+    })
+    .finally(() => {
+      if (eventID) state.queuedEventIDs.delete(eventID)
+      if (state.sessionQueues.get(sessionID) === task) {
+        state.sessionQueues.delete(sessionID)
+      }
+      resolveDone()
+    })
+  state.sessionQueues.set(sessionID, task)
+  return { done }
+}
+
+export async function runHooksForEvent(
+  ctx: HookPluginContext,
+  config: HooksConfig,
+  rawEvent: unknown,
+  state: HookRuntimeState = createHookRuntimeState(),
+  catalog?: HookCatalog,
+): Promise<void> {
+  const queued = await enqueueHooksForEvent(ctx, config, rawEvent, state, catalog)
+  if (queued) await queued.done
 }
 
 async function loadConfig(): Promise<HooksConfig> {
@@ -796,7 +1045,6 @@ export default {
     )
     if (activeEvents.length === 0) return
 
-    const catalog = await loadHookCatalog(ctx)
     const state = createHookRuntimeState()
     const controller = new AbortController()
     const types = [...new Set([...activeEvents, "session.created", "session.deleted"])]
@@ -806,7 +1054,7 @@ export default {
           types,
           signal: controller.signal,
         })) {
-          void runHooksForEvent(ctx, config, event, state, catalog).catch((error) => {
+          await enqueueHooksForEvent(ctx, config, event, state, undefined, controller.signal).catch((error) => {
             console.warn("[Hooks] Event handling failed.", error)
           })
         }

@@ -20,9 +20,11 @@ Any wording or language works. You can also provide only the prompt URL or a loc
 
 The prompt detects whether the project is new or already configured and sets it up or updates it accordingly. No exact phrase or extra rerun instruction is needed to run setup. Existing project choices and user-owned content are preserved; new or refreshed catalog skills are adapted to verified repository facts without weakening their general safeguards. Prose in every installed skill and explicitly selected plugin is translated into the selected language while code behavior and technical identifiers remain unchanged. Before work, every agent checks the Skills OpenCode advertises—including Skills added manually after setup—recommends relevant ones, and loads them when permissions allow.
 
-Interactive setup asks for the language and usage mode, then asks about unresolved project choices, optional Skills, Analyzer, and Hooks. It installs the six core roles in Development or four in Documentation (docs-as-code). Analyzer is offered separately and is not part of either core team. Hooks are an optional event-driven plugin with a YAML config and README. On a rerun, the prompt detects existing files, previews proposed updates, and preserves user-edited content when changes are declined or cannot be safely reconciled.
+Interactive setup asks for the language and usage mode, then asks about unresolved project choices, optional Skills, Analyzer, and Hooks. It installs the six core roles in Development or four in Documentation (docs-as-code). In development mode when agents maintain documentation, requirements and relevant architecture documents are approved before implementation; the developer, tester, and reviewer receive that same baseline. Analyzer is offered separately and is not part of either core team. Hooks are an optional event-driven plugin with a YAML config and README. On a rerun, the prompt detects existing files, previews proposed updates, and preserves user-edited content when changes are declined or cannot be safely reconciled.
 
 Requires OpenCode V2 with a configured provider and model. Setup files go in `.opencode/`; the optional Analyzer also adds two targeted database ignore rules to `.gitignore` after consent. Hooks are installed only after consent and do not add dependencies or OpenCode config entries. Nothing is committed or pushed. Review the result with `git diff`.
+
+This configures the OpenCode harness—agent roles, instructions, Skills, and explicitly selected plugins. It does not bootstrap the application, install its dependencies, or configure its runtime or deployment environment.
 
 Reusable Skill templates live in `templates/skills/` and install into the target project at `.opencode/skills/`. Skills manually added there after setup are discovered dynamically and are available to agents without rerunning setup.
 
@@ -88,6 +90,8 @@ On a later setup run, the prompt detects Analyzer's plugin and agent, previews c
 Hooks are an optional OpenCode V2 plugin installed only after the setup prompt asks and the user answers Yes. The plugin, starter YAML, and event reference README live at `.opencode/plugins/hooks/`. Hooks are disabled in the starter config; add actions and set `enabled: true` to activate them. After changing `hooks.yml`, reload OpenCode with `/reload`.
 
 The config is YAML and uses OpenCode V2 event names directly (for example, `session.idle`). Each event must contain a list of hook entries; hooks run sequentially in YAML order. Hooks can attach Skills, invoke registered OpenCode commands, and launch OpenCode agents in independent sessions. Hook reports are added to the triggering session without resuming it.
+
+Events for one session are queued and run in order; up to four sessions can run hooks concurrently. The bounded queue pauses event consumption when full rather than dropping accepted events. Skills, commands, and agents are re-read for each hook event, so additions and removals made while OpenCode is running are reflected without a reload. Changes to `hooks.yml` itself still require `/reload`.
 
 ```yaml
 hooks:

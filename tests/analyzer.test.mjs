@@ -458,6 +458,7 @@ test("configuration snapshots store safe metadata and fingerprints only", async 
   t.after(() => rm(directory, { recursive: true, force: true }))
   await mkdir(join(directory, ".opencode", "agents"), { recursive: true })
   await mkdir(join(directory, ".opencode", "skills", "private-skill"), { recursive: true })
+  await mkdir(join(directory, ".opencode", "plugins", "hooks"), { recursive: true })
   await writeFile(
     join(directory, ".opencode", "opencode.jsonc"),
     `{
@@ -501,6 +502,11 @@ test("configuration snapshots store safe metadata and fingerprints only", async 
   await writeFile(
     join(directory, ".opencode", "agents", "developer.md"),
     "instruction-secret-marker",
+  )
+  const hooksConfigPath = join(directory, ".opencode", "plugins", "hooks", "hooks.yml")
+  await writeFile(
+    hooksConfigPath,
+    `hooks:\n  session.idle:\n    - enabled: true\n      prompt: "hooks-prompt-secret-marker"\n`,
   )
 
   const context = {
@@ -563,9 +569,11 @@ test("configuration snapshots store safe metadata and fingerprints only", async 
   assert.match(output, /private-mcp/)
   assert.doesNotMatch(
     output,
-    /database-secret-marker|instruction-secret-marker|private-path-marker|model-secret-marker|skill-secret-marker|mcp-secret-marker|private\.example|private-source-marker/,
+    /database-secret-marker|instruction-secret-marker|private-path-marker|model-secret-marker|skill-secret-marker|mcp-secret-marker|private\.example|private-source-marker|hooks-prompt-secret-marker/,
   )
   assert.ok(snapshot.files.some((file) => file.path === ".opencode/opencode.jsonc"))
+  const hooksFile = snapshot.files.find((file) => file.path === ".opencode/plugins/hooks/hooks.yml")
+  assert.ok(hooksFile)
   assert.ok(snapshot.files.every((file) => /^[a-f0-9]{64}$/.test(file.hash)))
   const configFile = snapshot.files.find((file) => file.path === ".opencode/opencode.jsonc")
   assert.equal(configFile.settings.defaultAgent, "tech-lead")
@@ -592,8 +600,21 @@ test("configuration snapshots store safe metadata and fingerprints only", async 
   const saved = db.prepare("SELECT * FROM config_versions").all()
   assert.doesNotMatch(
     JSON.stringify(saved),
-    /database-secret-marker|provider-secret-marker|model-secret-marker|secret-command-marker|mcp-secret-marker|private\.example|private-plugin-source|private-skill\.example|private-instruction-path|instruction-secret-marker/,
+    /database-secret-marker|provider-secret-marker|model-secret-marker|secret-command-marker|mcp-secret-marker|private\.example|private-plugin-source|private-skill\.example|private-instruction-path|instruction-secret-marker|hooks-prompt-secret-marker/,
   )
+
+  await writeFile(
+    hooksConfigPath,
+    `hooks:\n  session.idle:\n    - enabled: true\n      prompt: "a different private prompt"\n`,
+  )
+  const changedHooksSnapshot = await captureConfigSnapshot(context, PROJECT_ID, directory)
+  const changedHooksFile = changedHooksSnapshot.files.find(
+    (file) => file.path === ".opencode/plugins/hooks/hooks.yml",
+  )
+  assert.ok(changedHooksFile)
+  assert.notEqual(changedHooksFile.hash, hooksFile.hash)
+  assert.notEqual(changedHooksSnapshot.fingerprint, snapshot.fingerprint)
+  assert.doesNotMatch(JSON.stringify(changedHooksSnapshot), /a different private prompt/)
 })
 
 test("empty database returns bounded empty results and unknown metrics", (t) => {
@@ -820,6 +841,10 @@ test("shared setup rules require every agent to identify relevant Skills before 
   assert.match(normalizedPrompt, /briefly recommend them in your initial plan\/status/)
   assert.match(normalizedPrompt, /load them with the native `skill` tool before the related work/)
   assert.match(normalizedPrompt, /Never install Skills, widen permissions/)
+  assert.match(
+    normalizedPrompt,
+    /exclude `<setup root>\/templates\/skills\/` and its descendants from this target-project scan/i,
+  )
 
   const agents = [
     "tech-lead",
@@ -850,4 +875,47 @@ test("shared setup rules require every agent to identify relevant Skills before 
   assert.match(analyzer.replace(/\s+/g, " "), /recommend relevant Skills in the initial plan/i)
   assert.match(analyzer.replace(/\s+/g, " "), /load them with the native `skill` tool/i)
   assert.match(analyzer.replace(/\s+/g, " "), /cannot widen this agent's scope/i)
+})
+
+test("development pipeline approves and hands off documentation before implementation", async () => {
+  const techLead = await readFile(
+    new URL("../templates/agents/tech-lead.md", import.meta.url),
+    "utf8",
+  )
+  const pipeline = techLead
+    .slice(techLead.indexOf("## Pipeline"))
+    .split("## Planning, checklist, and context management")[0]
+  const analystStep = pipeline.indexOf("**analyst**")
+  const architectStep = pipeline.indexOf("**architect**")
+  const baselineApproval = pipeline.indexOf("Approve the design baseline before implementation")
+  const implementationLoop = pipeline.indexOf("For each task:")
+  const developerStep = pipeline.indexOf("**developer**")
+  assert.ok(analystStep < architectStep)
+  assert.ok(architectStep < baselineApproval)
+  assert.ok(baselineApproval < implementationLoop)
+  assert.ok(implementationLoop < developerStep)
+  assert.match(pipeline, /same approved documentation baseline/i)
+  assert.match(pipeline, /Do not assign implementation until the baseline is accepted/i)
+  assert.match(pipeline, /assignment prompt must include the new\/changed documentation text or exact relevant sections/i)
+  assert.match(pipeline, /receive the same approved documentation baseline in the assignment prompt/i)
+  assert.match(pipeline, /same approved requirements, changed documentation and acceptance criteria in the assignment prompt/i)
+  assert.match(pipeline, /Do not assign post-implementation documentation edits merely to make docs match code/i)
+
+  const developer = await readFile(
+    new URL("../templates/agents/developer.md", import.meta.url),
+    "utf8",
+  )
+  const tester = await readFile(
+    new URL("../templates/agents/tester.md", import.meta.url),
+    "utf8",
+  )
+  const reviewer = await readFile(
+    new URL("../templates/agents/reviewer.md", import.meta.url),
+    "utf8",
+  )
+  assert.match(developer, /approved design baseline included in the assignment prompt/i)
+  assert.match(tester, /same approved baseline the developer received/i)
+  assert.match(tester, /approved baseline as the source of expected behavior/i)
+  assert.match(reviewer, /new\/changed document text or exact relevant sections/i)
+  assert.match(reviewer, /compare the changed code and tests with the same documents/i)
 })

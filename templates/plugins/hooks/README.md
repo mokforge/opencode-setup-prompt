@@ -30,6 +30,13 @@ hooks:
 Entries run sequentially in the order listed. The next entry starts after the
 previous entry's command/agent session has finished.
 
+The parser intentionally supports a strict YAML subset: two-space indentation,
+one top-level `hooks` mapping, event-to-list mappings, hook mappings, scalar
+values, block lists, and inline string lists. Duplicate event or hook-field
+keys are errors. YAML anchors, aliases, tags, flow mappings, and other document
+markers are not supported. A multiline `prompt` may use the literal `|` or
+folded `>` block style; other block-scalar indicators are rejected.
+
 Supported fields on each hook:
 
 - `enabled`: set to `true` to activate the hook. It defaults to `false`.
@@ -54,7 +61,14 @@ project files.
 
 The starter YAML keeps hooks disabled. After editing `hooks.yml`, reload
 OpenCode with `/reload`. Unknown Skills, commands, or agents are skipped and
-reported in the OpenCode log.
+reported in the OpenCode log. The plugin refreshes the available Skills,
+commands, and agents for each dispatched event, so manual additions/removals
+are recognized without restarting OpenCode.
+
+Events for the same session are queued and run in arrival order. Up to four
+sessions can run hooks concurrently. The waiting queue is bounded to 256 events
+overall and 32 per session; when a limit is reached, event consumption pauses
+until queue space is available instead of dropping the event.
 
 ## Available OpenCode V2 session events
 
