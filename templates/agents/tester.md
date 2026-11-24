@@ -2,6 +2,9 @@
 description: "Verifies acceptance criteria: runs the developer's tests, adds the tests that are missing, and reports defects. Only edits tests."
 mode: subagent
 permissions:
+  - action: skill
+    resource: "*"
+    effect: allow
   - action: edit
     resource: "*"
     effect: deny

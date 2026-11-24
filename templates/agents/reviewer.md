@@ -2,6 +2,9 @@
 description: "Reviews code, migrations and documentation for correctness, sources, security and readiness. Read-only."
 mode: subagent
 permissions:
+  - action: skill
+    resource: "*"
+    effect: allow
   - action: edit
     resource: "*"
     effect: deny

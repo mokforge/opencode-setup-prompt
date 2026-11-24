@@ -776,6 +776,7 @@ test("setup prompt and README keep Analyzer complete, opt-in, and paired", async
   assert.match(ignore, /^\.opencode\/plugins\/analyzer\/data\.sqlite$/m)
   assert.match(ignore, /^\.opencode\/plugins\/analyzer\/data\.sqlite-\*$/m)
   assert.match(agent, /^mode: all$/m)
+  assert.match(agent, /action: skill\s+resource: "\*"\s+effect: allow/)
   assert.match(agent, /analyzer_summary/)
   assert.match(agent, /do not apply the change/i)
   assert.match(normalizedAgent, /Never suggest or generate an application-code patch/i)
@@ -817,7 +818,7 @@ test("shared setup rules require every agent to identify relevant Skills before 
   const normalizedPrompt = prompt.replace(/\s+/g, " ")
   assert.match(normalizedPrompt, /Skill selection before work: at the start of each task/)
   assert.match(normalizedPrompt, /briefly recommend them in your initial plan\/status/)
-  assert.match(normalizedPrompt, /load them with the native `skill` tool before the related work when their permission allows/)
+  assert.match(normalizedPrompt, /load them with the native `skill` tool before the related work/)
   assert.match(normalizedPrompt, /Never install Skills, widen permissions/)
 
   const agents = [
@@ -835,12 +836,18 @@ test("shared setup rules require every agent to identify relevant Skills before 
       "utf8",
     )
     assert.match(source, /\.opencode\/AGENTS\.md/, `${agent} inherits shared rules`)
+    assert.match(
+      source,
+      /action: skill\s+resource: "\*"\s+effect: allow/,
+      `${agent} can load Skills added after setup`,
+    )
   }
 
   const analyzer = await readFile(
     new URL("../templates/agents/analyzer.md", import.meta.url),
     "utf8",
   )
-  assert.match(analyzer.replace(/\s+/g, " "), /mention a relevant Skill as an optional suggestion/i)
-  assert.match(analyzer.replace(/\s+/g, " "), /do not activate it/i)
+  assert.match(analyzer.replace(/\s+/g, " "), /recommend relevant Skills in the initial plan/i)
+  assert.match(analyzer.replace(/\s+/g, " "), /load them with the native `skill` tool/i)
+  assert.match(analyzer.replace(/\s+/g, " "), /cannot widen this agent's scope/i)
 })

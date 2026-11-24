@@ -2,6 +2,9 @@
 description: "Primary coordinating agent. Runs the task through the development or documentation pipeline, breaks work into steps, delegates to the selected subagents, and accepts the result. Does not write code or documentation content itself."
 mode: primary
 permissions:
+  - action: skill
+    resource: "*"
+    effect: allow
   - action: edit
     resource: "*"
     effect: deny

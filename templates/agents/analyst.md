@@ -2,6 +2,9 @@
 description: "Requirements, acceptance criteria, documentation and sequence diagrams. Does not write code."
 mode: subagent
 permissions:
+  - action: skill
+    resource: "*"
+    effect: allow
   - action: edit
     resource: "*"
     effect: deny

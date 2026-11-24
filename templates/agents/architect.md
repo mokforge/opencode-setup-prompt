@@ -2,6 +2,9 @@
 description: "Design decisions, ADRs, architecture documentation and C4 diagrams via universal documentation and PlantUML skills. Call after analyst. Does not write code."
 mode: subagent
 permissions:
+  - action: skill
+    resource: "*"
+    effect: allow
   - action: edit
     resource: "*"
     effect: deny

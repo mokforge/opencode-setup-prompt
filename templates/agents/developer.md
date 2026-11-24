@@ -2,6 +2,9 @@
 description: "Implements one task: code and migrations. The only agent that writes production code."
 mode: subagent
 permissions:
+  - action: skill
+    resource: "*"
+    effect: allow
   - action: edit
     resource: "*"
     effect: allow
