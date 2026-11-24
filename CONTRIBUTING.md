@@ -79,7 +79,7 @@ Run these checks before a pull request:
 - The skill can be distributed under the repository's MIT license.
 - The skill installs as `.opencode/skills/<skill-id>/` and its `SKILL.md` stays at the directory root.
 - References between steps of the prompt (`Step N`, section names) still point to existing text, and the Step 8 checks cover any new behavior.
-- The development pipeline keeps requirements and relevant architecture decisions ahead of implementation, and hands the same approved baseline to the developer, tester, and reviewer.
+- Every development task, including trivial edits, goes through tech-lead orchestration. Requirements and current technical documentation are assessed before implementation; analyst owns requirements and acceptance criteria, architect owns technical documentation, developer writes implementation code and tests, tester runs and assesses tests read-only, and reviewer reviews without editing. Tech-lead enforces the handoffs, checks that documentation is current (or that a no-change decision has evidence), and routes findings to the correct owner. Agents do not guess at blockers; resolved decisions are recorded in canonical docs and approved before work resumes. Developer, tester, and reviewer receive the same approved baseline.
 
 ## Commits
 

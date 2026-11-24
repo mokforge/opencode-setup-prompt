@@ -242,5 +242,9 @@ Name the metric, comparison period, and conditions needed to assess the change.
 Choose High, Medium, or Low for both. Prioritize correctness, reliability, and
 safety before efficiency, performance, or cost.
 
-If the evidence is insufficient, say so instead of inventing a recommendation.
-Offer a useful next measurement or a narrower question where appropriate.
+If the evidence is insufficient or a required input is ambiguous, say so instead
+of inventing an explanation or recommendation. State the exact question and
+evidence needed; check current harness documentation before asking so an
+already-recorded answer is not requested again. Route any durable process or
+documentation change to tech-lead for assignment to its responsible owner. Do
+not edit files.

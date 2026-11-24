@@ -882,6 +882,7 @@ test("development pipeline approves and hands off documentation before implement
     new URL("../templates/agents/tech-lead.md", import.meta.url),
     "utf8",
   )
+  const techLeadPermissions = techLead.split("---")[1]
   const pipeline = techLead
     .slice(techLead.indexOf("## Pipeline"))
     .split("## Planning, checklist, and context management")[0]
@@ -890,32 +891,99 @@ test("development pipeline approves and hands off documentation before implement
   const baselineApproval = pipeline.indexOf("Approve the design baseline before implementation")
   const implementationLoop = pipeline.indexOf("For each task:")
   const developerStep = pipeline.indexOf("**developer**")
+  const testerStep = pipeline.indexOf("**tester**")
+  const reviewerStep = pipeline.lastIndexOf("**reviewer**")
   assert.ok(analystStep < architectStep)
   assert.ok(architectStep < baselineApproval)
   assert.ok(baselineApproval < implementationLoop)
   assert.ok(implementationLoop < developerStep)
-  assert.match(pipeline, /same approved documentation baseline/i)
+  assert.ok(developerStep < testerStep)
+  assert.ok(testerStep < reviewerStep)
+  assert.match(techLead, /including trivial and one-line changes/i)
+  assert.match(pipeline, /Never skip the analyst's impact assessment/i)
+  assert.match(pipeline, /Never skip the architect's impact assessment/i)
+  assert.match(pipeline, /same approved baseline as the developer and tester/i)
   assert.match(pipeline, /Do not assign implementation until the baseline is accepted/i)
-  assert.match(pipeline, /assignment prompt must include the new\/changed documentation text or exact relevant sections/i)
-  assert.match(pipeline, /receive the same approved documentation baseline in the assignment prompt/i)
-  assert.match(pipeline, /same approved requirements, changed documentation and acceptance criteria in the assignment prompt/i)
-  assert.match(pipeline, /Do not assign post-implementation documentation edits merely to make docs match code/i)
+  assert.match(pipeline, /assignment prompt must include the approved requirements, acceptance criteria, current documentation relevant to the task/i)
+  assert.match(pipeline, /receive the same approved baseline as the developer and tester/i)
+  assert.match(pipeline, /receive the same approved requirements, current relevant documentation and acceptance criteria as the developer/i)
+  assert.match(pipeline, /Do not assign post-implementation edits merely to make docs match code/i)
+  assert.match(techLead, /Only the analyst and architect author or update project documentation/i)
+  assert.match(techLead, /Route a requirements or acceptance-criteria gap to the analyst/i)
+  assert.match(techLead, /If the developer discovers missing, incorrect or conflicting documentation, stop the affected implementation/i)
+  assert.match(techLead, /## Blockers and decisions/)
+  assert.match(techLead, /must not invent an answer or continue the affected work on an assumption/i)
+  assert.match(techLead, /never ask again for a question already answered in the current documentation/i)
+  assert.doesNotMatch(
+    techLeadPermissions,
+    /action:\s*edit\s+resource:\s*"\.opencode\/docs\/\*\*"\s+effect:\s*allow/,
+  )
 
   const developer = await readFile(
     new URL("../templates/agents/developer.md", import.meta.url),
     "utf8",
   )
+  const developerPermissions = developer.split("---")[1]
   const tester = await readFile(
     new URL("../templates/agents/tester.md", import.meta.url),
     "utf8",
   )
+  const testerPermissions = tester.split("---")[1]
   const reviewer = await readFile(
     new URL("../templates/agents/reviewer.md", import.meta.url),
     "utf8",
   )
+  const reviewerPermissions = reviewer.split("---")[1]
+  const analyst = await readFile(
+    new URL("../templates/agents/analyst.md", import.meta.url),
+    "utf8",
+  )
+  const architect = await readFile(
+    new URL("../templates/agents/architect.md", import.meta.url),
+    "utf8",
+  )
+
   assert.match(developer, /approved design baseline included in the assignment prompt/i)
+  assert.match(developer, /Do not create, edit, move or delete project documentation/i)
+  assert.match(
+    developerPermissions,
+    /action:\s*edit\s+resource:\s*"\.opencode\/docs\/\*\*"\s+effect:\s*deny/,
+  )
+  assert.match(tester, /You are read-only/i)
+  assert.match(tester, /Do not add, rewrite, repair or delete tests/i)
+  assert.doesNotMatch(tester, /add missing tests/i)
+  assert.match(testerPermissions, /action:\s*edit\s+resource:\s*"\*"\s+effect:\s*deny/)
+  assert.doesNotMatch(
+    testerPermissions,
+    /action:\s*edit\s+resource:\s*"[^\n]+"\s+effect:\s*allow/,
+  )
+  assert.match(reviewer, /never edit or fix files/i)
+  assert.match(reviewer, /review the tester's test-run evidence/i)
+  assert.doesNotMatch(
+    reviewerPermissions,
+    /action:\s*edit\s+resource:\s*"[^\n]+"\s+effect:\s*allow/,
+  )
+  assert.match(analyst, /Own the requirements baseline/i)
+  assert.match(analyst, /Do not guess, invent an answer or continue affected requirements work on an assumption/i)
+  assert.match(architect, /Own the technical solution and its documentation/i)
   assert.match(tester, /same approved baseline the developer received/i)
   assert.match(tester, /approved baseline as the source of expected behavior/i)
-  assert.match(reviewer, /new\/changed document text or exact relevant sections/i)
+  assert.match(tester, /do not infer expected behavior from current code/i)
+  assert.match(reviewer, /include the same baseline given to the developer and tester/i)
+  assert.match(reviewer, /report the exact question to tech-lead instead of guessing/i)
   assert.match(reviewer, /compare the changed code and tests with the same documents/i)
+
+  const setupPrompt = await readFile(new URL("../opencode-setup-prompt.md", import.meta.url), "utf8")
+  const normalizedSetupPrompt = setupPrompt.replace(/\s+/g, " ")
+  assert.match(
+    normalizedSetupPrompt,
+    /Every development task, including trivial edits, must be orchestrated by tech-lead/i,
+  )
+  assert.match(normalizedSetupPrompt, /documentation is maintained in both usage modes/i)
+  assert.match(
+    normalizedSetupPrompt,
+    /If any agent encounters missing, ambiguous, contradictory or unverified information.*it must not invent an answer/i,
+  )
+  assert.match(normalizedSetupPrompt, /do not use an assumption as a substitute/i)
+  assert.doesNotMatch(normalizedSetupPrompt, /No documentation maintained by agents/i)
 })
