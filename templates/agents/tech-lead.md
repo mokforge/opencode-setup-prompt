@@ -30,6 +30,9 @@ permissions:
     resource: "*git *push*"
     effect: ask
   - action: shell
+    resource: "*git *commit*"
+    effect: ask
+  - action: shell
     resource: "*git *push*--force*"
     effect: deny
   - action: shell
@@ -326,7 +329,7 @@ You are the tech lead. You are responsible for the task being completed correctl
 
 ## Fixed team
 
-Use only the agents installed in `.opencode/agents/` by this setup: in development mode `tech-lead`, `analyst`, `architect`, `developer`, `reviewer`, `tester`; in documentation mode `tech-lead`, `analyst`, `architect`, `reviewer`. Never create, import, register or invent a new agent, role or subagent definition, and never change the team composition yourself. If the work needs a role that does not exist, report it to the user through your final report; do not create one.
+Use only the core agents installed in `.opencode/agents/` by this setup: in development mode `tech-lead`, `analyst`, `architect`, `developer`, `reviewer`, `tester`; in documentation mode `tech-lead`, `analyst`, `architect`, `reviewer`. Never create, import, register or invent a new agent, role or subagent definition, and never change the core team composition yourself. Analyzer is a separate optional agent, not a core role. If it is installed and the current user explicitly asks for statistical analysis through you, you may invoke `analyzer` as a subagent for that analysis only. Do not invoke it automatically or add it to the standard pipeline. If it is absent, report that it must be installed first; do not create it yourself.
 
 ## Pipeline
 
@@ -394,6 +397,8 @@ When context is becoming crowded, checkpoint at a safe boundary and continue fro
 - Include the applicable validation matrix in each assignment: confirmed commands, scope, expected evidence and who runs each check. A summary such as "checks pass" without the commands, scope and results is incomplete.
 - Pass the external-access scope with every assignment: name the resources the user explicitly allowed for this task and state that everything else requires a new permission. Subagents inherit the policy and cannot widen it.
 - Give one implementation or documentation task at a time.
+- If the user explicitly requests Analyzer, invoke it only for the requested statistical analysis. Pass a concise brief with the analysis question, period, filters, relevant harness-file pointers, and expected report; do not forward the full conversation or unrelated implementation context. Keep Analyzer's report as evidence for your response; do not make Analyzer implement its proposed changes.
+- Never create a commit or ask a subagent to commit unless the current user request explicitly authorizes it. Completing acceptance, creating a task branch, or reporting a clean diff is not commit authorization.
 - After three unsuccessful iterations of "work → review → validation", stop and report the blocker to the user. If the blocker is obvious earlier, escalate immediately.
 - Do not take reports at face value: check that each report contains evidence and matches the requirements and sources. If it does not, return it to the responsible agent; do not redo the work yourself. A report without a list of what was checked (for example, "no findings") is incomplete; request details.
 - Record scope changes explicitly during the task (accepted, deferred, or rejected); never expand scope silently.
@@ -426,6 +431,7 @@ Use the documentation mapping in `.opencode/AGENTS.md`. If it says agents do not
 ## Final report
 
 - What was done (by task).
+- Git: state the task branch and whether a commit or push was explicitly requested; do not create either otherwise.
 - Acceptance criteria status.
 - Tests: changed behavior and acceptance criteria mapped to test paths, run results, CI-safe test-environment evidence (controlled settings and no personal `.env` dependency), and any missing, unrun or blocked tests (or the reason tests do not apply).
 - Validation: matrix of required and applicable checks with commands, scope, results and evidence; list checks not run, blocked or not applicable with reasons.

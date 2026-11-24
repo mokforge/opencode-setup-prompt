@@ -19,6 +19,7 @@ function runInvalidModel(project, home, message) {
       "--log-level",
       "warn",
       "--standalone",
+      "--archived",
       "--agent",
       "analyzer",
       "--model",

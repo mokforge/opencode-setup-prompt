@@ -26,15 +26,15 @@ Requires OpenCode V2 with a configured provider and model. Setup files go in `.o
 
 ## Analyzer
 
-Analyzer is an optional, local telemetry plugin and a separate read-only agent for reviewing how OpenCode agents behave. It is available in both Development and Documentation modes, is not a Skill, does not become the default agent, and is never added to the normal task pipeline.
+Analyzer is an optional, local telemetry plugin and a separate read-only agent for analyzing how OpenCode agents behave. It can be selected directly as the primary agent and run without `tech-lead`. If the user explicitly asks, `tech-lead` can invoke the installed Analyzer as a subagent with a concise statistics-only brief; it is never called automatically. It recommends changes only to the OpenCode harness—agent instructions, Skills, model/tool settings, permissions, and orchestration—and never proposes application-code, product-test, or build-file changes. It is available in both Development and Documentation modes, is not a Skill, does not become the default agent, and is never added to the normal task pipeline.
 
 ### Install
 
-- **Interactive setup:** choose **Yes, install Analyzer** when the prompt offers it. That single choice installs both the plugin and its paired agent; there is no separate agent consent.
+- **Interactive setup:** choose **Yes, install Analyzer** when the prompt offers it. That single choice installs the plugin and paired agent and allows `tech-lead` to invoke Analyzer only when you explicitly ask; there is no separate agent or permission consent.
 - **Unattended setup:** Analyzer is not installed by default. Ask for it explicitly, for example: `Install Analyzer.` or `Установи Analyzer.` A request to install all Skills does not include Analyzer.
 - **Decline:** setup continues without Analyzer and does not add its files, configuration, or `.gitignore` rules.
 
-The plugin is installed as `.opencode/plugins/analyzer.ts` and auto-discovered by supported OpenCode V2 versions (verified with OpenCode v2.4.0). Its agent is `.opencode/agents/analyzer.md`. No `plugins` entry or other OpenCode configuration is normally required. The agent can be selected directly with the CLI:
+The plugin is installed as `.opencode/plugins/analyzer.ts` and auto-discovered by supported OpenCode V2 versions (verified with OpenCode v2.4.1). Its agent is `.opencode/agents/analyzer.md`. Opt-in setup also adds a narrowly scoped `tech-lead` permission, the two database ignore rules, and a startup check that does not call a model. The current plugin uses OpenCode's bundled Bun runtime and SQLite, so no package install or manifest change is needed. No `plugins` entry or other OpenCode configuration is normally required. The agent can be selected directly with the CLI:
 
 ```bash
 opencode run --agent analyzer "Analyze agent behavior for the last 7 days."
@@ -63,7 +63,7 @@ The plugin creates its database on first load at:
 .opencode/plugins/analyzer/data.sqlite
 ```
 
-The database and SQLite sidecar files are excluded from Git. The plugin uses OpenCode's bundled Bun runtime and built-in SQLite; it adds no package dependency, backend, or external database. Collection is passive and local: it does not make its own network requests or LLM calls. Data is retained for up to 90 days, with caps of 10,000 sessions, 50,000 events, 25,000 rows per detail table, and 64 configuration versions. Pruned or incomplete history is reported. Plugin updates use schema migrations and preserve the database; setup does not reset or replace it.
+The database and SQLite sidecar files are excluded from Git. The plugin uses OpenCode's bundled Bun runtime and built-in SQLite; it adds no package dependency, backend, external database, or package-manifest change. Collection is passive and local: it does not make its own network requests or LLM calls. Data is retained for up to 90 days, with caps of 10,000 sessions, 50,000 events, 25,000 rows per detail table, and 64 configuration versions. Pruned or incomplete history is reported. Plugin updates use schema migrations and preserve the database; setup does not reset or replace it.
 
 Analyzer stores event IDs, timestamps, session/agent/model/tool identifiers, counters, available token and cost metrics, durations, categorized errors, compaction and delegation events, Skill activations, coarse test/build/lint command categories, safe configuration summaries, and configuration fingerprints. It does **not** store prompts, model responses, source contents, raw shell commands, raw tool arguments or outputs, MCP results, or raw error messages. Tool argument fingerprints represent argument structure, not exact values.
 
