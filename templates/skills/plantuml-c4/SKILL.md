@@ -17,15 +17,15 @@ Detailed rules live next to this file; read only the ones you need:
 
 ## File naming and location
 
-The default location is `.opencode/docs/diagrams/c4/`. Every C4 file starts with the diagram level and names its subject:
+The default location is `.opencode/docs/diagrams/c4/`. Use lowercase kebab-case filenames that start with the diagram level:
 
-- `C4_L1_<SystemName>.puml` — system context of one system.
-- `C4_L2_<SystemName>.puml` — containers of that system.
-- `C4_L3_<ContainerName>.puml` — components of one container.
+- `c4-l1-<system-name>.puml` — system context of one system.
+- `c4-l2-<system-name>.puml` — containers of that system.
+- `c4-l3-<container-name>.puml` — components of one container.
 
-The `C4_L<n>_` prefix is mandatory and its level must match the file content. Never create a C4 diagram without the level in its name, and never put one level in the name and another in the diagram. The `@startuml` identifier equals the filename stem.
+The `c4-l<n>-` prefix is mandatory and its level must match the file content. Never create a C4 diagram without the level in its name, and never put one level in the name and another in the diagram. Since PlantUML identifiers cannot contain hyphens, the `@startuml` identifier is the filename stem with hyphens replaced by underscores.
 
-Prefer the project's documentation paths. If the project has its own file naming, keep it only when the level remains visible in the file name; otherwise use the pattern above. Keep an existing compliant name when editing the file; if a file you must change lacks the level prefix, rename it to this rule and report the old and new paths.
+Prefer the project's documentation paths. If the project has an established naming convention, preserve it when editing existing files; for new C4 files use the lowercase kebab-case patterns above unless the project documents another required form. Keep an existing compliant name when editing the file; if a task requires renaming, report the old and new paths.
 
 ## Non-negotiables
 
@@ -42,8 +42,8 @@ A file labeled "L2 Container" that places `Component(...)` inside `Container_Bou
 
 ## Before finishing
 
-- The filename starts with `C4_L1_`, `C4_L2_` or `C4_L3_`, and the level matches the content.
-- The file has one balanced `@startuml`/`@enduml` pair whose identifier equals the stem.
+- The lowercase kebab-case filename starts with `c4-l1-`, `c4-l2-` or `c4-l3-`, and the level matches the content.
+- The file has one balanced `@startuml`/`@enduml` pair whose identifier matches the stem after replacing hyphens with underscores.
 - Every alias is declared before use, and every relationship endpoint exists.
 - The include for the chosen level is offline and no foreign notation is mixed in.
 - The example for the level was used as a syntax reference, not as copied architecture.

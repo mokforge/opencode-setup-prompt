@@ -75,6 +75,7 @@ Understanding-oriented. Explains why and how the system works:
 - The navigation mirrors the reader's tasks, not the internal team structure.
 - Every page is reachable from the index or navigation. No orphan pages.
 - Use short, stable titles and descriptive file names. Avoid "misc", "notes" and "other".
+- Use lowercase kebab-case file names. Follow existing project conventions; if none exist, use `req--<short-kebab-description>.md` for requirements, `adr--<short-kebab-description>.md` for ADRs, `seq-<short-kebab-description>.puml` for sequence diagrams, and `c4-l<n>-<short-kebab-description>.puml` for C4 diagrams.
 - Keep headings in a logical hierarchy; do not skip levels.
 - Put the most important information first. Progressive disclosure for long reference pages.
 - Cross-link related pages in both directions when the reader may arrive from either side.
@@ -95,13 +96,14 @@ Then: prerequisites, install, minimal example, configuration, where the full doc
 
 - State the problem, goal, scope in and out, actors and constraints.
 - Use numbered requirements and acceptance criteria; each criterion is verifiable.
+- When the project has no established file naming, use `req--<short-kebab-description>.md`; the `FR-1` and `AC-1` identifiers stay in the document body.
 - Mark assumptions and open questions. Do not hide an unresolved decision in prose.
 - Link to the related architecture, ADR and diagrams.
 - Keep requirements separate from the proposed solution.
 
 ## ADRs
 
-Use one file per significant decision, numbered according to the project:
+Use one file per significant decision. Follow the project convention; when none exists, use `adr--<short-kebab-description>.md` with no numeric prefix:
 
 - title and status: proposed, accepted, deprecated or superseded;
 - context and forces;

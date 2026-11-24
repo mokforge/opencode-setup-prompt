@@ -3,7 +3,7 @@
 ## Diagram block
 
 - One diagram per file: exactly one balanced `@startuml <ASCII_identifier>` ... `@enduml` pair. Do not put several blocks in one `.puml`.
-- The identifier equals the filename stem from the naming rule in `SKILL.md` and contains only letters, digits and underscores.
+- The identifier is the lowercase kebab-case filename stem from the naming rule in `SKILL.md` with hyphens replaced by underscores; it contains only letters, digits and underscores.
 - Save as UTF-8. Put localized human-readable text in `title` and labels; identifiers and aliases stay ASCII.
 - Keep the diagram renderable without external image assets. Use `LAYOUT_WITH_LEGEND()` where legibility permits.
 

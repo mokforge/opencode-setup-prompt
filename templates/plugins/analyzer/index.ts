@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url"
 
 const ANALYZER_ID = "analyzer"
 const SCHEMA_VERSION = 1
-const DATABASE_URL = new URL("./analyzer/data.sqlite", import.meta.url)
+const DATABASE_URL = new URL("./data.sqlite", import.meta.url)
 const BUSY_TIMEOUT_MS = 500
 const RETENTION_DAYS = 90
 const MAX_SESSIONS = 10_000
@@ -2757,7 +2757,7 @@ async function collectConfigFiles(root: string): Promise<
     ".opencode/AGENTS.md",
     ".opencode/opencode.json",
     ".opencode/opencode.jsonc",
-    ".opencode/plugins/analyzer.ts",
+    ".opencode/plugins/analyzer/index.ts",
   ])
   let visitedDirectories = 0
 
@@ -2808,8 +2808,8 @@ async function collectConfigFiles(root: string): Promise<
         if (safe) paths.add(safe)
       }
       if (
-        directory.endsWith(`${sep}.opencode${sep}plugins`) &&
-        entry.name === "analyzer.ts"
+        directory.endsWith(`${sep}.opencode${sep}plugins${sep}analyzer`) &&
+        entry.name === "index.ts"
       ) {
         const safe = relativeSafePath(root, fullPath)
         if (safe) paths.add(safe)
@@ -3247,7 +3247,7 @@ function isRelevantConfigPath(root: string, path: string): boolean {
     safe === ".opencode/opencode.jsonc" ||
     safe.startsWith(".opencode/agents/") ||
     safe.startsWith(".opencode/skills/") ||
-    safe === ".opencode/plugins/analyzer.ts"
+     safe === ".opencode/plugins/analyzer/index.ts"
   )
 }
 
@@ -3409,7 +3409,7 @@ export default {
     const projectRoot =
       stringValue(ctx.location.project?.canonical, 2000) ??
       stringValue(ctx.location.project?.directory, 2000) ??
-      resolve(pluginDirectory, "..", "..")
+      resolve(pluginDirectory, "..", "..", "..")
     const projectRoots = [
       projectRoot,
       stringValue(ctx.location.directory, 2000),

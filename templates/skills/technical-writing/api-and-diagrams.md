@@ -38,7 +38,7 @@ Each guide states prerequisites, a working example, the expected result and the 
 
 - A diagram should answer one question. Do not put the whole system into one image.
 - Keep the source in the repository: PlantUML (`*.puml`), Mermaid, Structurizr DSL or the project's chosen text format. Do not ship only a generated image.
-- Use the project's diagram skill and naming conventions. For C4, use the correct level and file-name level prefix; for sequence diagrams, use the project's `Sequence_<Process>.puml` convention.
+- Use the project's diagram skill and naming conventions. When no project convention exists, use `c4-l<n>-<short-kebab-description>.puml` for C4 diagrams and `seq-<short-kebab-description>.puml` for sequence diagrams.
 - Label elements with real system, container, component, actor and protocol names. Do not invent elements.
 - Keep the diagram and the text consistent; link both ways.
 - Add a short caption or surrounding explanation: what the reader should notice.

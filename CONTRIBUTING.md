@@ -1,15 +1,15 @@
 # Contributing
 
-This repository contains an OpenCode setup prompt, agent templates, and reusable skills.
-Everything in it can be changed by contributors under the same rules: skills, agent templates, the prompt, documentation, and repository configuration.
+This repository contains an OpenCode setup prompt, agent and plugin templates, and reusable skill templates.
+Everything in it can be changed by contributors under the same rules: skill, agent and plugin templates, the prompt, documentation, and repository configuration.
 Documentation, the prompt, templates, and skills are written in English.
 
 ## Skills
 
-Each skill is a directory under `skills/`:
+Each skill template is a directory under `templates/skills/`:
 
 ```text
-skills/<skill-id>/
+templates/skills/<skill-id>/
 ├── SKILL.md       # entry point, required
 ├── <reference>.md # optional supporting references
 └── LICENSE        # MIT
@@ -25,14 +25,14 @@ skills/<skill-id>/
 
 ## Adding or updating a skill
 
-1. Create or update `skills/<skill-id>/SKILL.md`.
+1. Create or update `templates/skills/<skill-id>/SKILL.md`.
 2. Add supporting files only when they keep `SKILL.md` shorter and easier to scan.
 3. Update `README.md` only if the repository-level description or usage changes.
 4. Check the skill locally before committing.
 
 ## Prompt and agent templates
 
-Changes to `opencode-setup-prompt.md` and `templates/agents/*.md` follow the same flow as skills: a branch, a focused commit, the automated checks, a pull request.
+Changes to `opencode-setup-prompt.md`, `templates/agents/*.md`, and `templates/plugins/` follow the same flow as skills: a branch, a focused commit, the automated checks, a pull request.
 
 - `templates/agents/*.md` contains the six universal role templates. Development uses all six; documentation (docs-as-code) uses `tech-lead`, `analyst`, `architect` and `reviewer`. Do not add separate documentation copies of the agents; the prompt chooses which agents to create.
 - A template body is shared by every project: do not put project facts into it. Project facts are added by the prompt to `## Project rules` when a project is set up. Source templates stay in English; they are translated in the generated project.
@@ -56,7 +56,7 @@ The hooks run `markdownlint-cli2`, `yamllint`, Prettier in check mode, basic YAM
 Run these checks before a commit:
 
 - Frontmatter parses as YAML, starts on the first line, and contains non-empty `name` and `description`.
-- The directory name and skill ID are unique under `skills/`.
+- The directory name and skill ID are unique under `templates/skills/`.
 - Every file referenced from `SKILL.md` exists.
 - Markdown code fences are balanced.
 - Commands and paths are either real for the target project or clearly marked as examples.

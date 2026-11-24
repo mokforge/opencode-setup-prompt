@@ -15,13 +15,13 @@ repos:
         name: skill frontmatter has name and description
         entry: '\A---\r?\n(?=[\s\S]*?^name:[ \t]*\S[^\r\n]*$)(?=[\s\S]*?^description:[ \t]*\S[^\r\n]*$)[\s\S]*?^---[ \t]*$'
         language: pygrep
-        files: ^skills/[^/]+/SKILL\.md$
+        files: ^templates/skills/[^/]+/SKILL\.md$
         args: [--multiline, --negate]
       - id: no-placeholders
         name: no placeholders in templates and skills
         entry: '(# here|\bTODO\b|^\s*\.\.\.\s*$)'
         language: pygrep
-        files: ^(templates|skills)/
+        files: ^templates/
         types: [text]
       - id: only-tech-lead-primary
         name: only tech-lead template is primary

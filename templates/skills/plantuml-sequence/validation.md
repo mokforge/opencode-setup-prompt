@@ -5,9 +5,9 @@
 3. Run a real syntax check with a local PlantUML CLI, preferably the same engine version as the IDE plugin:
 
    ```bash
-   plantuml -checkonly path/to/Sequence_Flow.puml
+   plantuml -checkonly path/to/seq-flow.puml
    # Or, for an explicitly configured PlantUML JAR:
-   java -jar /path/to/plantuml.jar -checkonly path/to/Sequence_Flow.puml
+   java -jar /path/to/plantuml.jar -checkonly path/to/seq-flow.puml
    ```
 
    Recent PlantUML also supports `--check-syntax`. A non-zero exit or parser error must be fixed; do not ignore it or pretend validation happened.

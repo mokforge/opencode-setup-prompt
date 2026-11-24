@@ -50,7 +50,7 @@
 
 ## Repository hygiene
 
-- Keep file names stable, lowercase and descriptive; use the project's numbering scheme for ADRs, requirements and RFCs.
+- Keep file names stable, lowercase and descriptive. Follow an established project convention; when none exists, use `req--<short-kebab-description>.md` for requirements, `adr--<short-kebab-description>.md` for ADRs, `seq-<short-kebab-description>.puml` for sequence diagrams, and `c4-l<n>-<short-kebab-description>.puml` for C4 diagrams. Requirement IDs inside documents may remain numbered (for example, `FR-1` and `AC-1`); do not add numeric counters to these filenames.
 - Avoid orphan pages: every page is reachable from navigation or a canonical index.
 - Keep one `README` entry point; use it for what the project is, why it exists, how to start, where the full docs are and how to contribute.
 - Put generated artifacts, caches and build output outside the docs source or ignore them in git.

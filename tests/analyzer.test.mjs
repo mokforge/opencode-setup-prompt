@@ -15,7 +15,7 @@ import {
   getAnalyzerDatabasePath,
   normalizeAnalyzerFilters,
   normalizeEvent,
-} from "../templates/plugins/analyzer.ts"
+} from "../templates/plugins/analyzer/index.ts"
 
 const PROJECT_ID = "test-project"
 const RANGE = { period_days: 7, from: 0, to: 10_000 }
@@ -691,7 +691,7 @@ test("concurrent Node processes can migrate and write to one WAL database", asyn
   createAnalyzerStore(setup, PROJECT_ID)
   setup.close()
 
-  const analyzerUrl = import.meta.resolve("../templates/plugins/analyzer.ts")
+  const analyzerUrl = import.meta.resolve("../templates/plugins/analyzer/index.ts")
   const childSource = `
     import { DatabaseSync } from "node:sqlite";
     const plugin = await import(${JSON.stringify(analyzerUrl)});
@@ -740,7 +740,7 @@ test("setup prompt and README keep Analyzer complete, opt-in, and paired", async
   const ignore = await readFile(new URL("../.gitignore", import.meta.url), "utf8")
   const agent = await readFile(new URL("../templates/agents/analyzer.md", import.meta.url), "utf8")
   const normalizedAgent = agent.replace(/\s+/g, " ")
-  const plugin = await readFile(new URL("../templates/plugins/analyzer.ts", import.meta.url), "utf8")
+  const plugin = await readFile(new URL("../templates/plugins/analyzer/index.ts", import.meta.url), "utf8")
   const techLead = await readFile(new URL("../templates/agents/tech-lead.md", import.meta.url), "utf8")
   assert.match(normalizedPrompt, /Analyzer is separate from Skills/i)
   assert.match(normalizedPrompt, /available in both modes/i)
@@ -752,7 +752,7 @@ test("setup prompt and README keep Analyzer complete, opt-in, and paired", async
   assert.match(normalizedPrompt, /do not ask separately about the agent, permission, or these component dependencies/i)
   assert.match(normalizedPrompt, /current template has no third-party package dependencies/i)
   assert.match(normalizedPrompt, /exact project-local manifest, lockfile, and dependency-installation artifacts are also allowed/i)
-  assert.match(normalizedPrompt, /The current `templates\/plugins\/analyzer\.ts` uses Node built-ins and OpenCode's bundled Bun `bun:sqlite`/)
+  assert.match(normalizedPrompt, /The current `templates\/plugins\/analyzer\/index\.ts` uses Node built-ins and OpenCode's bundled Bun `bun:sqlite`/)
   assert.match(normalizedPrompt, /Do not run a package manager, create\/change a package manifest or lockfile, or add a dependency for this template/i)
   assert.match(normalizedPrompt, /If the user chooses No.*do not create the plugin, agent/i)
   assert.match(normalizedPrompt, /recommend only OpenCode harness changes/i)
@@ -763,7 +763,7 @@ test("setup prompt and README keep Analyzer complete, opt-in, and paired", async
   assert.match(normalizedPrompt, /Do not add a `plugins` entry to `opencode\.json\(c\)`/i)
   assert.match(normalizedPrompt, /No agent commits or pushes unless the current user request explicitly authorizes it/i)
   assert.match(normalizedPrompt, /the tech-lead's `git commit` permission is `ask`/i)
-  assert.match(normalizedPrompt, /auto-discovers direct .*\.opencode\/plugins\//)
+  assert.match(normalizedPrompt, /auto-discovers local plugin directories with `index\.ts`/)
   assert.match(normalizedPrompt, /opencode debug agents --help.*opencode run --help.*opencode debug agents.*lists `analyzer`/i)
   assert.match(normalizedPrompt, /opencode run --log-level warn --standalone --archived --agent analyzer --model invalid\/none/)
   assert.match(normalizedPrompt, /do not substitute a real model call.*setup as incomplete/i)
@@ -789,7 +789,7 @@ test("setup prompt and README keep Analyzer complete, opt-in, and paired", async
   assert.match(techLead, /If it is installed and the current user explicitly asks for statistical analysis through you, you may invoke `analyzer` as a subagent/)
   assert.match(techLead, /resource: "\*git \*commit\*"\s+effect: ask/)
   assert.doesNotMatch(techLead, /resource: "analyzer"/)
-  assert.match(plugin, /new URL\("\.\/analyzer\/data\.sqlite", import\.meta\.url\)/)
+  assert.match(plugin, /new URL\("\.\/data\.sqlite", import\.meta\.url\)/)
   assert.match(plugin, /import\("bun:sqlite"\)/)
   assert.doesNotMatch(plugin, /\b(?:from|import\()\s*["'](?!node:|bun:)[^"']+["']/)
   assert.match(plugin, /export function createAnalyzerToolDefinitions/)
@@ -810,4 +810,37 @@ test("tech-lead caps parent-supplied context in subagent handoffs", async () => 
     normalizedTechLead,
     /If it would exceed the budget, preserve the required task and validation details but split the assignment into smaller tasks or give exact file\/line pointers/i,
   )
+})
+
+test("shared setup rules require every agent to identify relevant Skills before work", async () => {
+  const prompt = await readFile(new URL("../opencode-setup-prompt.md", import.meta.url), "utf8")
+  const normalizedPrompt = prompt.replace(/\s+/g, " ")
+  assert.match(normalizedPrompt, /Skill selection before work: at the start of each task/)
+  assert.match(normalizedPrompt, /briefly recommend them in your initial plan\/status/)
+  assert.match(normalizedPrompt, /load them with the native `skill` tool before the related work when their permission allows/)
+  assert.match(normalizedPrompt, /Never install Skills, widen permissions/)
+
+  const agents = [
+    "tech-lead",
+    "analyst",
+    "architect",
+    "developer",
+    "reviewer",
+    "tester",
+    "analyzer",
+  ]
+  for (const agent of agents) {
+    const source = await readFile(
+      new URL(`../templates/agents/${agent}.md`, import.meta.url),
+      "utf8",
+    )
+    assert.match(source, /\.opencode\/AGENTS\.md/, `${agent} inherits shared rules`)
+  }
+
+  const analyzer = await readFile(
+    new URL("../templates/agents/analyzer.md", import.meta.url),
+    "utf8",
+  )
+  assert.match(analyzer.replace(/\s+/g, " "), /mention a relevant Skill as an optional suggestion/i)
+  assert.match(analyzer.replace(/\s+/g, " "), /do not activate it/i)
 })

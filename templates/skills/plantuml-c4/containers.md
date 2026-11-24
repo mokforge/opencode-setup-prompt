@@ -26,4 +26,4 @@ Show one software system boundary with its independently runnable/deployable app
 
 ## Example
 
-`examples/C4_L2_Store.puml` — a fictional store: an API, an orders database, an event queue and an external payment provider. Replace its elements with verified project facts.
+`examples/c4-l2-store.puml` — a fictional store: an API, an orders database, an event queue and an external payment provider. Replace its elements with verified project facts.

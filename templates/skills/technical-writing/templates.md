@@ -59,7 +59,7 @@ What this step does and why. Command or code. Expected output.
 
 ## Step N — <action>
 
-...
+Describe the step, then give its command or action and the expected output.
 
 ## What you built
 
@@ -139,6 +139,8 @@ Links to ADRs and reference.
 
 ## Requirements
 
+Recommended filename: `req--<short-kebab-description>.md` (unless the project has an established convention).
+
 ```markdown
 # <Topic> requirements
 
@@ -169,10 +171,12 @@ AC-1 ... (Given / When / Then)
 
 ## ADR
 
-```markdown
-# NNNN. <Decision title>
+Recommended filename: `adr--<short-kebab-description>.md` (unless the project has an established convention).
 
-- Status: proposed / accepted / deprecated / superseded by NNNN
+```markdown
+# <Decision title>
+
+- Status: proposed / accepted / deprecated / superseded by <adr--short-description>.md
 - Date:
 - Owners:
 

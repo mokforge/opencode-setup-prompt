@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { spawnSync } from "node:child_process"
-import { copyFile, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises"
+import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { DatabaseSync } from "node:sqlite"
@@ -11,21 +11,20 @@ const version = spawnSync("opencode", ["--version"], { encoding: "utf8" })
 const openCodeV2Available =
   !version.error && version.status === 0 && /^opencode v2\./m.test(version.stdout)
 
-function runInvalidModel(project, home, message) {
+function runInvalidModel(project, home, message, options = {}) {
+  const { agent = "analyzer", logLevel = "warn" } = options
+  const args = [
+    "run",
+    "--log-level",
+    logLevel,
+    "--standalone",
+    "--archived",
+  ]
+  if (agent) args.push("--agent", agent)
+  args.push("--model", "invalid/none", message)
   return spawnSync(
     "opencode",
-    [
-      "run",
-      "--log-level",
-      "warn",
-      "--standalone",
-      "--archived",
-      "--agent",
-      "analyzer",
-      "--model",
-      "invalid/none",
-      message,
-    ],
+    args,
     {
       cwd: project,
       encoding: "utf8",
@@ -55,9 +54,10 @@ test(
     const userConfig = join(home, ".config", "opencode")
     await mkdir(join(home, "tmp"), { recursive: true })
     const pluginDirectory = join(project, ".opencode", "plugins")
+    const analyzerPluginDirectory = join(pluginDirectory, "analyzer")
     const agentDirectory = join(project, ".opencode", "agents")
     await mkdir(userConfig, { recursive: true })
-    await mkdir(pluginDirectory, { recursive: true })
+    await mkdir(analyzerPluginDirectory, { recursive: true })
     await mkdir(agentDirectory, { recursive: true })
     await writeFile(
       join(userConfig, "opencode.json"),
@@ -69,8 +69,8 @@ test(
 
     const repository = fileURLToPath(new URL("../", import.meta.url))
     await copyFile(
-      join(repository, "templates/plugins/analyzer.ts"),
-      join(pluginDirectory, "analyzer.ts"),
+      join(repository, "templates/plugins/analyzer/index.ts"),
+      join(analyzerPluginDirectory, "index.ts"),
     )
     await copyFile(
       join(repository, "templates/agents/analyzer.md"),
@@ -166,17 +166,18 @@ test(
     const unavailableHome = join(directory, "database-unavailable-home")
     const unavailableProject = join(directory, "database-unavailable-project")
     const unavailablePlugins = join(unavailableProject, ".opencode", "plugins")
+    const unavailableAnalyzerPlugin = join(unavailablePlugins, "analyzer")
     await mkdir(join(unavailableHome, ".config", "opencode"), { recursive: true })
     await mkdir(join(unavailableHome, "tmp"), { recursive: true })
-    await mkdir(unavailablePlugins, { recursive: true })
+    await mkdir(unavailableAnalyzerPlugin, { recursive: true })
     await mkdir(join(unavailableProject, ".opencode", "agents"), { recursive: true })
     await writeFile(
       join(unavailableHome, ".config", "opencode", "opencode.json"),
       JSON.stringify({ update: "disable" }),
     )
     await copyFile(
-      join(repository, "templates/plugins/analyzer.ts"),
-      join(unavailablePlugins, "analyzer.ts"),
+      join(repository, "templates/plugins/analyzer/index.ts"),
+      join(unavailableAnalyzerPlugin, "index.ts"),
     )
     await copyFile(
       join(repository, "templates/agents/analyzer.md"),
@@ -195,5 +196,50 @@ test(
     assert.equal(unavailableResult.error, undefined, unavailableOutput)
     assert.equal(unavailableResult.status, 1, unavailableOutput)
     assert.match(unavailableOutput, /Model unavailable: invalid\/none/)
+  },
+)
+
+test(
+  "OpenCode V2 discovers the Hooks plugin directory with its disabled YAML config",
+  { skip: !openCodeV2Available },
+  async (t) => {
+    const directory = await mkdtemp(join(tmpdir(), "opencode-hooks-smoke-"))
+    t.after(() => rm(directory, { recursive: true, force: true }))
+    const home = join(directory, "home")
+    const project = join(directory, "project")
+    const userConfig = join(home, ".config", "opencode")
+    const hooksDirectory = join(project, ".opencode", "plugins", "hooks")
+    const pluginSource = join(
+      fileURLToPath(new URL("../templates/plugins/hooks/", import.meta.url)),
+    )
+    await mkdir(join(home, "tmp"), { recursive: true })
+    await mkdir(userConfig, { recursive: true })
+    await mkdir(hooksDirectory, { recursive: true })
+    await writeFile(
+      join(userConfig, "opencode.json"),
+      JSON.stringify({
+        $schema: "https://opencode.ai/config.json",
+        update: "disable",
+      }),
+    )
+    await copyFile(join(pluginSource, "index.ts"), join(hooksDirectory, "index.ts"))
+    await copyFile(join(pluginSource, "hooks.yml"), join(hooksDirectory, "hooks.yml"))
+
+    const result = runInvalidModel(
+      project,
+      home,
+      "Verify Hooks plugin startup only; do not run any hook actions.",
+      { agent: null, logLevel: "info" },
+    )
+    const output = `${result.stdout ?? ""}\n${result.stderr ?? ""}`
+    const log = await readFile(
+      join(home, ".local", "share", "opencode", "log", "opencode.log"),
+      "utf8",
+    ).catch(() => "")
+    assert.equal(result.error, undefined, output)
+    assert.equal(result.status, 1, output)
+    assert.match(output, /Model unavailable: invalid\/none/)
+    assert.match(log, /loading plugin.*entrypoint=.*hooks\/index\.ts/)
+    assert.doesNotMatch(output, /Failed to load plugin|Plugin .* failed to load/i)
   },
 )

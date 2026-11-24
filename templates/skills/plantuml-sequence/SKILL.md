@@ -16,14 +16,14 @@ Detailed rules live next to this file; read only the ones you need:
 ## Non-negotiables
 
 - Trace the scenario in requirements, code, API contracts, events and integrations. Separate implemented behavior from proposed behavior and flag unknown callers. Do not invent endpoints, methods, event names or replies.
-- One file per coherent process. Name it `Sequence_<ProcessName>.puml`; the `@startuml` identifier equals the filename stem.
+- One file per coherent process. Unless the project has an established convention, name it `seq-<short-kebab-description>.puml`. Use a valid PlantUML identifier with hyphens replaced by underscores, for example `seq_create_order`.
 - Use native PlantUML sequence syntax only: no remote `!include`, proprietary macros, image-based participants or external rendering dependencies.
 - Keep the diagram focused and split long flows rather than shrinking labels to unreadable text.
 - Validate the source, syntax and rendering honestly, and report what was and was not executed.
 
 ## Before finishing
 
-- The file is a UTF-8 `.puml` with one balanced `@startuml`/`@enduml` pair and an identifier equal to the stem.
+- The file is a UTF-8 `.puml` with one balanced `@startuml`/`@enduml` pair and an identifier matching the filename stem after replacing hyphens with underscores.
 - Every participant alias is declared, and every message endpoint exists.
 - All `alt`/`else`/`opt`/`loop`/`par` blocks are closed, and `activate`/`deactivate` are balanced.
 - Branches, errors and optional steps reflect documented behavior, not guesses.

@@ -1,4 +1,4 @@
-@startuml C4_L3_Store_Api
+@startuml c4_l3_store_api
 !include <C4/C4_Component>
 LAYOUT_WITH_LEGEND()
 title Store API - Components

@@ -24,4 +24,4 @@ Show the components inside one selected container — handlers, domain services,
 
 ## Example
 
-`examples/C4_L3_Store_Api.puml` — a fictional Store API container with three components and its database. Replace its elements with verified project facts.
+`examples/c4-l3-store-api.puml` — a fictional Store API container with three components and its database. Replace its elements with verified project facts.

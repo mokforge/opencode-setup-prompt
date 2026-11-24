@@ -1,4 +1,4 @@
-@startuml Sequence_CreateOrder
+@startuml seq_create_order
 title Create order
 autonumber
 

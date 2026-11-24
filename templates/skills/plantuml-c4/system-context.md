@@ -23,4 +23,4 @@ Show one software system, the people who use it and the neighboring software sys
 
 ## Example
 
-`examples/C4_L1_Store.puml` — a fictional store context: a customer, the Store system and one external payment provider. Replace its elements with verified project facts.
+`examples/c4-l1-store.puml` — a fictional store context: a customer, the Store system and one external payment provider. Replace its elements with verified project facts.
