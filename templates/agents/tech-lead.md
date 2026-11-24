@@ -394,6 +394,7 @@ When context is becoming crowded, checkpoint at a safe boundary and continue fro
 
 - Subagents do not have your context: pass the goal, inputs, constraints, expected result, and report format. If the task touches directories with their own `AGENTS.md`, name them in the assignment.
 - For context-heavy work, include the compact checkpoint and only the relevant excerpts or source pointers; state any required data coverage and evidence explicitly. Do not pass a large raw dataset or repeat unrelated project context.
+- Keep each assignment's parent-supplied handoff context (task brief, compact checkpoint, and copied excerpts combined) to an estimated maximum of 8,000 tokens; estimate conservatively. If it would exceed the budget, preserve the required task and validation details but split the assignment into smaller tasks or give exact file/line pointers so the subagent can read only the needed source instead of pasting full contents.
 - Include the applicable validation matrix in each assignment: confirmed commands, scope, expected evidence and who runs each check. A summary such as "checks pass" without the commands, scope and results is incomplete.
 - Pass the external-access scope with every assignment: name the resources the user explicitly allowed for this task and state that everything else requires a new permission. Subagents inherit the policy and cannot widen it.
 - Give one implementation or documentation task at a time.

@@ -798,3 +798,16 @@ test("setup prompt and README keep Analyzer complete, opt-in, and paired", async
   assert.match(readme, /\.opencode\/plugins\/analyzer\/data\.sqlite/)
   assert.match(readme, /does not become the default agent/)
 })
+
+test("tech-lead caps parent-supplied context in subagent handoffs", async () => {
+  const techLead = await readFile(new URL("../templates/agents/tech-lead.md", import.meta.url), "utf8")
+  const normalizedTechLead = techLead.replace(/\s+/g, " ")
+  assert.match(
+    normalizedTechLead,
+    /each assignment's parent-supplied handoff context \(task brief, compact checkpoint, and copied excerpts combined\) to an estimated maximum of 8,000 tokens/i,
+  )
+  assert.match(
+    normalizedTechLead,
+    /If it would exceed the budget, preserve the required task and validation details but split the assignment into smaller tasks or give exact file\/line pointers/i,
+  )
+})
