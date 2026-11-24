@@ -13,3 +13,11 @@ test("optional catalog skill selection supports multiple choices", () => {
   assert.match(prompt, /never use a single-choice menu of skill IDs/i)
   assert.match(prompt, /free-text or comma-separated list/i)
 })
+
+test("unknown skill relevance exposes the full optional catalog for selection", () => {
+  assert.match(prompt, /mark its fit as unknown, not not applicable/i)
+  assert.match(
+    prompt,
+    /when no optional skill can be confidently recommended.*offer every optional catalog skill as a multi-select choice/i,
+  )
+})
