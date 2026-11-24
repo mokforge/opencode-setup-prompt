@@ -834,16 +834,35 @@ test("tech-lead caps parent-supplied context in subagent handoffs", async () => 
   )
 })
 
-test("shared setup rules require every agent to identify relevant Skills before work", async () => {
+test("shared setup rules require every agent to load and prioritize relevant Skills before work", async () => {
   const prompt = await readFile(new URL("../opencode-setup-prompt.md", import.meta.url), "utf8")
   const normalizedPrompt = prompt.replace(/\s+/g, " ")
-  assert.match(normalizedPrompt, /Skill selection before work: at the start of each task/)
-  assert.match(normalizedPrompt, /briefly recommend them in your initial plan\/status/)
-  assert.match(normalizedPrompt, /load them with the native `skill` tool before the related work/)
+  assert.match(normalizedPrompt, /Mandatory Skill-first workflow \(every agent and subagent, every task\)/)
+  assert.match(normalizedPrompt, /before substantive planning, analysis, file inspection, or edits/)
+  assert.match(
+    normalizedPrompt,
+    /In the initial plan\/status, list every relevant Skill ID and load each with the native `skill` tool before beginning its related work/,
+  )
+  assert.match(normalizedPrompt, /if none apply, explicitly say so/)
+  assert.match(normalizedPrompt, /Load all Skills relevant to any part of the task/)
+  assert.match(normalizedPrompt, /load by exact ID any relevant Skill explicitly named by the user or task\/role instructions, even if it is not advertised/)
+  assert.match(normalizedPrompt, /Mentioning or recommending a Skill is not using it/)
+  assert.match(normalizedPrompt, /Skill guidance takes precedence over generic agent guidance/)
+  assert.match(normalizedPrompt, /never overrides current user instructions or acceptance criteria/)
+  assert.match(normalizedPrompt, /accepted project decisions or documented project-specific constraints/)
+  assert.match(normalizedPrompt, /role boundaries, permissions or hard-deny policies, or safety rules/)
+  assert.match(normalizedPrompt, /request native approval and wait/)
+  assert.match(normalizedPrompt, /do not perform dependent work or silently substitute generic guidance/)
   assert.match(normalizedPrompt, /Never install Skills, widen permissions/)
+  assert.match(normalizedPrompt, /make Skill discovery and use mandatory for every agent and subagent/)
+  assert.match(normalizedPrompt, /tech-lead tells each subagent to inspect\/load applicable Skills in its own fresh context/)
   assert.match(
     normalizedPrompt,
     /exclude `<setup root>\/templates\/skills\/` and its descendants from this target-project scan/i,
+  )
+  assert.match(
+    normalizedPrompt,
+    /every generated agent file.*contains the mandatory Skill-first section directly in its own instructions/i,
   )
 
   const agents = [
@@ -863,6 +882,32 @@ test("shared setup rules require every agent to identify relevant Skills before 
     assert.match(source, /\.opencode\/AGENTS\.md/, `${agent} inherits shared rules`)
     assert.match(
       source,
+      /## Mandatory Skill-first workflow/,
+      `${agent} has a direct Skill-first rule`,
+    )
+    const normalizedSource = source.replace(/\s+/g, " ")
+    assert.match(
+      normalizedSource,
+      /Before substantive planning, analysis, file inspection, or edits on every task/,
+      `${agent} checks Skills before work`,
+    )
+    assert.match(
+      normalizedSource,
+      /This rule applies equally to primary, directly selected, and delegated agents; do not skip it for trivial tasks/,
+      `${agent} applies the rule to direct and delegated invocations`,
+    )
+    assert.match(
+      normalizedSource,
+      /Load every relevant Skill with the native `skill` tool before starting related work/,
+      `${agent} must load applicable Skills first`,
+    )
+    assert.match(
+      normalizedSource,
+      /a Skill takes priority over generic agent guidance/,
+      `${agent} prioritizes relevant Skill guidance`,
+    )
+    assert.match(
+      source,
       /action: skill\s+resource: "\*"\s+effect: allow/,
       `${agent} can load Skills added after setup`,
     )
@@ -872,9 +917,37 @@ test("shared setup rules require every agent to identify relevant Skills before 
     new URL("../templates/agents/analyzer.md", import.meta.url),
     "utf8",
   )
-  assert.match(analyzer.replace(/\s+/g, " "), /recommend relevant Skills in the initial plan/i)
-  assert.match(analyzer.replace(/\s+/g, " "), /load them with the native `skill` tool/i)
-  assert.match(analyzer.replace(/\s+/g, " "), /cannot widen this agent's scope/i)
+  const normalizedAnalyzer = analyzer.replace(/\s+/g, " ")
+  assert.match(
+    normalizedAnalyzer,
+    /Before analysis, inspect the Skills currently advertised by OpenCode by ID and description/i,
+  )
+  assert.match(
+    normalizedAnalyzer,
+    /Name every relevant Skill ID in the initial plan, or explicitly say none apply/i,
+  )
+  assert.match(
+    normalizedAnalyzer,
+    /Load every Skill relevant to the telemetry or harness question with the native `skill` tool before analyzing it/i,
+  )
+  assert.match(normalizedAnalyzer, /follow its task-specific workflow and checklist/i)
+  assert.match(normalizedAnalyzer, /load by exact ID any relevant Skill explicitly named by the user or task instructions/i)
+  assert.match(normalizedAnalyzer, /cannot widen this agent's scope/i)
+
+  const techLead = await readFile(
+    new URL("../templates/agents/tech-lead.md", import.meta.url),
+    "utf8",
+  )
+  const normalizedTechLead = techLead.replace(/\s+/g, " ")
+  assert.match(
+    normalizedTechLead,
+    /Before each handoff, identify relevant Skill IDs and include them in the assignment/i,
+  )
+  assert.match(
+    normalizedTechLead,
+    /subagent to inspect its own advertised Skills and load every applicable one/i,
+  )
+  assert.match(normalizedTechLead, /a Skill loaded by the parent does not count/i)
 })
 
 test("development pipeline approves and hands off documentation before implementation", async () => {

@@ -90,6 +90,10 @@ your active agent unless the user selects you. You can be selected directly as
 the primary agent and run without `tech-lead`. Project-wide rules:
 `.opencode/AGENTS.md`.
 
+## Mandatory Skill-first workflow
+
+Before substantive planning, analysis, file inspection, or edits on every task, inspect Skills currently advertised by OpenCode to you by ID and description. This rule applies equally to primary, directly selected, and delegated agents; do not skip it for trivial tasks. Put every applicable Skill ID in the initial plan/status, or explicitly state that none apply. Load every relevant Skill with the native `skill` tool before starting related work, then follow its task-specific workflow and checklist; also load a relevant Skill named by the user or task/role instructions by exact ID even if it is not advertised, subject to permission. In its domain, a Skill takes priority over generic agent guidance. It cannot override user requirements/acceptance criteria, accepted project decisions or documented project constraints, this role's scope, permissions/hard-deny policies, or safety. For `ask`, request approval and wait; if a relevant Skill is denied or unavailable, report its ID and blocked capability, do not bypass or silently substitute generic guidance, and continue only independent safe work. Never install Skills or widen permissions.
+
 ## Scope boundary
 
 - Use Analyzer statistics as the evidence for behavior claims. Use only
@@ -106,12 +110,19 @@ the primary agent and run without `tech-lead`. Project-wide rules:
   indicate an application defect, report it only as an out-of-scope observation
   and suggest that the user request a separate investigation from the
   appropriate development agent.
-- At task start, inspect the Skills currently advertised by OpenCode, including
-  Skills manually added after setup. Recommend relevant Skills in the initial
-  plan and load them with the native `skill` tool when they help the telemetry
-  or harness question. Treat Skill content as reference only: it cannot widen
-  this agent's scope, authorize application-code analysis, or grant denied
-  tools.
+- Before analysis, inspect the Skills currently advertised by OpenCode by ID
+  and description, including Skills manually added after setup. Name every
+  relevant Skill ID in the initial plan, or explicitly say none apply. Load
+  every Skill relevant to the telemetry or harness question with the native
+  `skill` tool before analyzing it, then follow its task-specific workflow and
+  checklist; also load by exact ID any relevant Skill explicitly named by the
+  user or task instructions, subject to permission. Mentioning a Skill is not
+  using it. For its domain, Skill guidance takes precedence over generic guidance, but cannot override user
+  instructions, accepted project decisions, this agent's scope, safety rules,
+  or denied permissions. If a relevant Skill is denied or unavailable, report
+  its exact ID and the blocked capability; do not silently substitute generic
+  guidance or claim the analysis is complete. Skill content cannot widen this
+  agent's scope, authorize application-code analysis, or grant denied tools.
 - Proposed diffs and instruction text must target only the allowed harness
   locations above. Do not apply any changes.
 
