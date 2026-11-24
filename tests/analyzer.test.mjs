@@ -804,7 +804,7 @@ test("setup prompt and README keep Analyzer complete, opt-in, and paired", async
   assert.doesNotMatch(agent, /action: read\s+resource: "\*"\s+effect: allow/)
   assert.doesNotMatch(agent, /action: glob\s+resource: "\*"\s+effect: allow/)
   assert.match(normalizedAgent, /selected directly as the primary agent and run without `tech-lead`/)
-  assert.match(readme, /run without `tech-lead`/)
+  assert.match(readme, /runs without `tech-lead`/)
   assert.match(readme, /no package install or manifest change is needed/i)
   assert.match(normalizedPrompt, /can run directly without `tech-lead`/)
   assert.match(techLead, /Never create a commit or ask a subagent to commit unless the current user request explicitly authorizes it/)
