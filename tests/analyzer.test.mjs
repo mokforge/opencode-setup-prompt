@@ -135,7 +135,17 @@ test("normalization keeps only safe metrics and marks missing values unknown", (
 test("migrations are repeatable and model metrics are not double-counted", (t) => {
   const { db, store } = memoryStore(t)
   assert.equal(db.prepare("PRAGMA user_version").get().user_version, 1)
+  db.exec("DROP INDEX idx_events_session_message_type_time")
   createAnalyzerStore(db, PROJECT_ID, () => 10_000)
+  assert.equal(
+    db
+      .prepare(
+        `SELECT COUNT(*) AS count FROM sqlite_master
+         WHERE type = 'index' AND name = ?`,
+      )
+      .get("idx_events_session_message_type_time").count,
+    1,
+  )
 
   startSession(store)
   save(store, rawEvent("session.execution.started", "execution-start", 1_100, {
@@ -298,6 +308,11 @@ test("tool calls are deduplicated, summarized, and never persist raw arguments o
   assert.equal(summary.tools[0].name, "read")
   assert.equal(summary.tools[0].calls, 1)
   assert.equal(summary.tools[0].succeeded, 1)
+  assert.deepEqual(summary.toolNameCoverage, {
+    totalCalls: 1,
+    namedCalls: 1,
+    unnamedCalls: 0,
+  })
 
   const tables = [
     "metadata",
@@ -313,6 +328,107 @@ test("tool calls are deduplicated, summarized, and never persist raw arguments o
   )
   assert.doesNotMatch(serialized, /private-marker|secret-marker|private-result-marker/)
   assert.doesNotMatch(JSON.stringify(store.details({ ...RANGE, kind: "tool", id: "read" })), /marker/)
+})
+
+test("tool names are resolved when message content arrives after the call event", (t) => {
+  const { store } = memoryStore(t)
+  startSession(store)
+  save(store, rawEvent("session.tool.called", "tool-called-late-name", 1_200, {
+    sessionID: "session-1",
+    assistantMessageID: "message-1",
+    id: "call-1",
+    input: {},
+    executed: true,
+  }))
+
+  const beforeName = store.summary(RANGE, DIAGNOSTICS)
+  assert.equal(beforeName.tools[0].name, null)
+  assert.deepEqual(beforeName.toolNameCoverage, {
+    totalCalls: 1,
+    namedCalls: 0,
+    unnamedCalls: 1,
+  })
+
+  save(store, rawEvent("session.message.content.updated", "tool-name-late", 1_250, {
+    sessionID: "session-1",
+    messageID: "message-1",
+    content: [
+      {
+        type: "tool",
+        id: "other-call",
+        name: "grep",
+        executed: true,
+        state: { status: "running" },
+      },
+      {
+        type: "tool",
+        id: "call-1",
+        name: "read",
+        executed: true,
+        state: { status: "running" },
+      },
+    ],
+  }))
+
+  const summary = store.summary(RANGE, DIAGNOSTICS)
+  assert.equal(summary.tools.length, 1)
+  assert.equal(summary.tools[0].name, "read")
+  assert.deepEqual(summary.toolNameCoverage, {
+    totalCalls: 1,
+    namedCalls: 1,
+    unnamedCalls: 0,
+  })
+  const toolDetail = store.details({ ...RANGE, kind: "tool", id: "read" })
+  assert.equal(toolDetail.calls[0].tool, "read")
+  const sessionDetail = store.details({ ...RANGE, kind: "session", id: "session-1" })
+  const callEvent = sessionDetail.events.find((event) => event.type === "session.tool.called")
+  assert.equal(callEvent.tool, "read")
+})
+
+test("previously collected tool names are backfilled from message events on startup", (t) => {
+  const { db, store } = memoryStore(t)
+  startSession(store)
+  save(store, rawEvent("session.message.content.updated", "tool-name-before-call", 1_150, {
+    sessionID: "session-1",
+    messageID: "message-1",
+    content: [{
+      type: "tool",
+      id: "call-1",
+      name: "read",
+      executed: true,
+      state: { status: "running" },
+    }],
+  }))
+  save(store, rawEvent("session.tool.called", "tool-called-before-backfill", 1_200, {
+    sessionID: "session-1",
+    assistantMessageID: "message-1",
+    id: "call-1",
+    input: {},
+    executed: true,
+  }))
+
+  db.prepare(
+    `UPDATE tool_calls SET tool_name = NULL, category = 'unknown'
+     WHERE session_id = ? AND message_id = ? AND tool_call_id = ?`,
+  ).run("session-1", "message-1", "call-1")
+  db.prepare(
+    `UPDATE events SET tool_name = NULL, action_category = 'unknown'
+     WHERE session_id = ? AND message_id = ? AND tool_call_id = ?
+       AND type = 'session.tool.called'`,
+  ).run("session-1", "message-1", "call-1")
+  db.prepare("DELETE FROM metadata WHERE key = ?").run("tool_name_backfill_v1")
+
+  const reopened = createAnalyzerStore(db, PROJECT_ID, () => 10_000)
+  const summary = reopened.summary(RANGE, DIAGNOSTICS)
+  assert.equal(summary.tools[0].name, "read")
+  assert.deepEqual(summary.toolNameCoverage, {
+    totalCalls: 1,
+    namedCalls: 1,
+    unnamedCalls: 0,
+  })
+  const detail = reopened.details({ ...RANGE, kind: "session", id: "session-1" })
+  const callEvent = detail.events.find((event) => event.type === "session.tool.called")
+  assert.equal(callEvent.tool, "read")
 })
 
 test("patterns aggregate repeated shapes, cycles, errors, compaction, and delegation", (t) => {
@@ -622,6 +738,11 @@ test("empty database returns bounded empty results and unknown metrics", (t) => 
   const summary = store.summary(RANGE, DIAGNOSTICS)
   assert.equal(summary.sessions.count, 0)
   assert.equal(summary.requests.count, 0)
+  assert.deepEqual(summary.toolNameCoverage, {
+    totalCalls: 0,
+    namedCalls: 0,
+    unnamedCalls: 0,
+  })
   assert.equal(summary.requests.metrics.input.observedTotal, null)
   assert.equal(summary.requests.metrics.input.observedRequests, 0)
   assert.deepEqual(summary.tools, [])
@@ -800,6 +921,16 @@ test("setup prompt and README keep Analyzer complete, opt-in, and paired", async
   assert.match(agent, /action: skill\s+resource: "\*"\s+effect: allow/)
   assert.match(agent, /analyzer_summary/)
   assert.match(agent, /do not apply the change/i)
+  assert.match(normalizedAgent, /toolNameCoverage/)
+  assert.match(
+    normalizedAgent,
+    /match `session\.tool\.\*` events to `session\.message\.content\.updated`/,
+  )
+  assert.match(
+    readme.replace(/\s+/g, " "),
+    /Tool names are resolved by matching call IDs.*toolNameCoverage/,
+  )
+  assert.match(normalizedPrompt, /tool-name coverage and any unmatched calls/i)
   assert.match(normalizedAgent, /Never suggest or generate an application-code patch/i)
   assert.doesNotMatch(agent, /action: read\s+resource: "\*"\s+effect: allow/)
   assert.doesNotMatch(agent, /action: glob\s+resource: "\*"\s+effect: allow/)
@@ -812,6 +943,7 @@ test("setup prompt and README keep Analyzer complete, opt-in, and paired", async
   assert.match(techLead, /resource: "\*git \*commit\*"\s+effect: ask/)
   assert.doesNotMatch(techLead, /resource: "analyzer"/)
   assert.match(plugin, /new URL\("\.\/data\.sqlite", import\.meta\.url\)/)
+  assert.match(plugin, /tool-name coverage/i)
   assert.match(plugin, /import\("bun:sqlite"\)/)
   assert.doesNotMatch(plugin, /\b(?:from|import\()\s*["'](?!node:|bun:)[^"']+["']/)
   assert.match(plugin, /export function createAnalyzerToolDefinitions/)

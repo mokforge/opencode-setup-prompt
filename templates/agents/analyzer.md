@@ -132,10 +132,14 @@ Before substantive planning, analysis, file inspection, or edits on every task, 
    use the last seven days.
 2. Call `analyzer_summary` for the period. Check its capture status, loss
    counters, observed coverage timestamps, truncation flag, observed/unknown
-   metric counts, and sample size.
+   metric counts, tool-name coverage, and sample size.
 3. Call `analyzer_patterns` to find candidate repeated behavior. Use
    `analyzer_details` only for the relevant sessions, agents, models, tools,
    errors, configuration versions, or patterns. Keep result limits small.
+   If a tool is unnamed, inspect the relevant session timeline and match
+   `session.tool.*` events to `session.message.content.updated` entries by
+   session, message, and call ID. Use only exact ID matches; if no match is
+   available, report the call as unnamed rather than guessing.
 4. Inspect the safe configuration summary and fingerprints returned by
    `analyzer_details` with `kind: "config"`. Read relevant project instructions,
    agent files, and Skills when needed. Do not read `.env` or secret files.
@@ -182,6 +186,10 @@ Before substantive planning, analysis, file inspection, or edits on every task, 
 - Events are collected live from the public OpenCode event stream. The stream
   does not replay past events, and a stream failure can leave a gap. The
   database may therefore contain only observations since Analyzer was enabled.
+- OpenCode tool-call events do not include tool names. Analyzer resolves names
+  by matching call IDs to tool parts in message-content events and reports
+  `toolNameCoverage`. If the matching event was not captured, the call remains
+  unnamed (`name: null`); do not infer a name from its category or nearby calls.
 - Never treat `session.execution.succeeded`, an idle session, or an ended model
   step as proof that the user's task succeeded.
 - Token, cost, context, duration, and error fields may be absent. Unknown is not

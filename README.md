@@ -28,7 +28,12 @@ Analyzer is a local, read-only telemetry agent. It is separate from the core tea
 opencode run --agent analyzer "Summarize agent behavior for the last 7 days."
 ```
 
-Its database is `.opencode/plugins/analyzer/data.sqlite`. It does not store prompts, model responses, source contents, or raw tool inputs and outputs. If used with a cloud model, analysis results may be sent to that provider.
+Its database is `.opencode/plugins/analyzer/data.sqlite`. It does not store
+prompts, model responses, source contents, or raw tool inputs and outputs. Tool
+names are resolved by matching call IDs to message-content events, and existing
+calls are backfilled when saved events contain an exact match. Unmatched calls
+remain unnamed and are counted in `toolNameCoverage`. If used with a cloud
+model, analysis results may be sent to that provider.
 
 ### Hooks
 

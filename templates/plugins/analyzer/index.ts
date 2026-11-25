@@ -471,6 +471,33 @@ function toolParts(
   })
 }
 
+function toolPartFromParts(
+  value: unknown,
+  toolCallId: string | null,
+  normalizedTools = false,
+): JsonRecord | null {
+  if (!toolCallId || !Array.isArray(value)) return null
+  for (const part of value) {
+    const item = record(part)
+    if (
+      (!normalizedTools && item.type !== "tool") ||
+      stringValue(item.id) !== toolCallId
+    ) {
+      continue
+    }
+    if (stringValue(item.name)) return item
+  }
+  return null
+}
+
+function toolNameFromParts(
+  value: unknown,
+  toolCallId: string | null,
+  normalizedTools = false,
+): string | null {
+  return stringValue(toolPartFromParts(value, toolCallId, normalizedTools)?.name)
+}
+
 export function normalizeEvent(
   value: unknown,
   mcpServers: readonly string[] = [],
@@ -738,10 +765,7 @@ export function normalizeEvent(
     const called = type === "session.tool.called"
     const success = type === "session.tool.success"
     const details = record(event.details)
-    const content = Array.isArray(data.content) ? data.content : []
-    const lastToolContent = content.find((part) => record(part).type === "tool")
-    const tool = record(lastToolContent)
-    event.toolName = stringValue(tool.name)
+    event.toolName = toolNameFromParts(data.content, event.toolCallId)
     event.actionCategory = toolCategory(event.toolName, mcpServers)
     event.diagnostic =
       event.toolName?.startsWith("analyzer_") === true ||
@@ -926,6 +950,10 @@ function migrate(db: SqlDatabase): void {
       `)
       db.exec("PRAGMA user_version = 1")
     }
+    db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_events_session_message_type_time
+        ON events(session_id, message_id, type, event_at DESC)
+    `)
     db.exec("COMMIT")
   } catch (error) {
     try {
@@ -1241,31 +1269,112 @@ export function createAnalyzerStore(
     return diagnostic || isDiagnosticSession(event.sessionId)
   }
 
-  function findToolName(event: NormalizedEvent): string | null {
-    if (event.toolName) return event.toolName
+  function findToolPart(
+    event: Pick<NormalizedEvent, "toolName" | "sessionId" | "messageId" | "toolCallId">,
+  ): { name: string; category: string | null } | null {
+    if (event.toolName) return { name: event.toolName, category: null }
     if (!event.sessionId || !event.messageId || !event.toolCallId) return null
     const rows = db
       .prepare(
         `SELECT details_json FROM events
          WHERE session_id = ? AND message_id = ?
            AND type = 'session.message.content.updated'
-         ORDER BY event_at DESC LIMIT 10`,
+         ORDER BY event_at DESC`,
       )
       .all(event.sessionId, event.messageId)
     for (const row of rows) {
       try {
         const details = record(JSON.parse(String(row.details_json)))
-        const tools = Array.isArray(details.tools) ? details.tools : []
-        const match = tools.find(
-          (item) => stringValue(record(item).id) === event.toolCallId,
-        )
-        const name = stringValue(record(match).name)
-        if (name) return name
+        const part = toolPartFromParts(details.tools, event.toolCallId, true)
+        const name = stringValue(part?.name)
+        if (name) return { name, category: stringValue(part?.category, 40) }
       } catch {
         continue
       }
     }
     return null
+  }
+
+  function findToolName(
+    event: Pick<NormalizedEvent, "toolName" | "sessionId" | "messageId" | "toolCallId">,
+  ): string | null {
+    return findToolPart(event)?.name ?? null
+  }
+
+  function updateToolName(
+    sessionId: string,
+    messageId: string,
+    toolCallId: string,
+    name: string,
+    category?: string | null,
+  ): void {
+    const resolvedCategory = category ?? toolCategory(name, getMcpServers())
+    const diagnostic = name.startsWith("analyzer_")
+    db.prepare(
+      `UPDATE tool_calls SET tool_name = ?, category = ?,
+         diagnostic = MAX(diagnostic, ?)
+       WHERE session_id = ? AND message_id = ? AND tool_call_id = ?`,
+    ).run(name, resolvedCategory, diagnostic ? 1 : 0, sessionId, messageId, toolCallId)
+    db.prepare(
+      `UPDATE events SET tool_name = ?, action_category = ?,
+         diagnostic = MAX(diagnostic, ?)
+       WHERE session_id = ? AND message_id = ? AND tool_call_id = ?
+         AND type IN ('session.tool.called', 'session.tool.success', 'session.tool.failed')`,
+    ).run(name, resolvedCategory, diagnostic ? 1 : 0, sessionId, messageId, toolCallId)
+    if (diagnostic) markDiagnostic(sessionId)
+  }
+
+  function updateToolNamesFromEvent(event: NormalizedEvent): void {
+    if (!event.sessionId || !event.messageId) return
+    const tools = Array.isArray(event.details.tools) ? event.details.tools : []
+    for (const part of tools) {
+      const item = record(part)
+      const id = stringValue(item.id)
+      const name = stringValue(item.name)
+      if (id && name) {
+        updateToolName(
+          event.sessionId,
+          event.messageId,
+          id,
+          name,
+          stringValue(item.category, 40),
+        )
+      }
+    }
+  }
+
+  function backfillToolNames(): void {
+    const completed = db
+      .prepare("SELECT value FROM metadata WHERE key = ?")
+      .get("tool_name_backfill_v1")
+    if (completed?.value === "1") return
+
+    const unresolved = db
+      .prepare(
+        `SELECT session_id, message_id, tool_call_id
+         FROM tool_calls WHERE tool_name IS NULL
+         ORDER BY COALESCE(ended_at, started_at) DESC LIMIT ?`,
+      )
+      .all(MAX_DETAIL_ROWS)
+    for (const row of unresolved) {
+      const sessionId = stringValue(row.session_id)
+      const messageId = stringValue(row.message_id)
+      const toolCallId = stringValue(row.tool_call_id)
+      if (!sessionId || !messageId || !toolCallId) continue
+      const part = findToolPart({
+        sessionId,
+        messageId,
+        toolCallId,
+        toolName: null,
+      })
+      if (part) {
+        updateToolName(sessionId, messageId, toolCallId, part.name, part.category)
+      }
+    }
+    db.prepare(
+      `INSERT INTO metadata(key, value) VALUES ('tool_name_backfill_v1', '1')
+       ON CONFLICT(key) DO UPDATE SET value = '1'`,
+    ).run()
   }
 
   function findAgentName(event: NormalizedEvent): string | null {
@@ -1675,7 +1784,12 @@ export function createAnalyzerStore(
         diagnostic ? 1 : 0,
         configId,
       )
-    if (result.changes === 0) return false
+    if (result.changes === 0) {
+      if (event.type === "session.message.content.updated") {
+        updateToolNamesFromEvent(event)
+      }
+      return false
+    }
 
     if (!event.sessionId) return true
     db.prepare(
@@ -1761,36 +1875,7 @@ export function createAnalyzerStore(
         upsertToolCall(event, configId)
         break
       case "session.message.content.updated": {
-        const tools = Array.isArray(event.details.tools) ? event.details.tools : []
-        for (const part of tools) {
-          const item = record(part)
-          const id = stringValue(item.id)
-          const name = stringValue(item.name)
-          if (!id || !name) continue
-          db.prepare(
-            `UPDATE tool_calls SET tool_name = ?, category = ?,
-               diagnostic = CASE WHEN ? = 1 THEN 1 ELSE diagnostic END
-             WHERE session_id = ? AND message_id = ? AND tool_call_id = ?`,
-          ).run(
-            name,
-            stringValue(item.category, 40) ?? toolCategory(name, getMcpServers()),
-            name.startsWith("analyzer_") ? 1 : 0,
-            event.sessionId,
-            event.messageId,
-            id,
-          )
-          db.prepare(
-            `UPDATE events SET tool_name = ?, action_category = ?
-             WHERE session_id = ? AND message_id = ? AND tool_call_id = ?
-               AND type IN ('session.tool.called', 'session.tool.success', 'session.tool.failed')`,
-          ).run(
-            name,
-            stringValue(item.category, 40) ?? toolCategory(name, getMcpServers()),
-            event.sessionId,
-            event.messageId,
-            id,
-          )
-        }
+        updateToolNamesFromEvent(event)
         if (diagnostic) markDiagnostic(event.sessionId)
         break
       }
@@ -2055,6 +2140,14 @@ export function createAnalyzerStore(
          GROUP BY tool_name, category ORDER BY calls DESC LIMIT ?`,
       )
       .all(...toolWhere.parameters, Math.min(filters.limit, 50))
+    const toolNameCoverage = db
+      .prepare(
+        `SELECT COUNT(*) AS total_calls, COUNT(tool_name) AS named_calls
+         FROM tool_calls WHERE ${toolWhere.sql}`,
+      )
+      .get(...toolWhere.parameters)
+    const totalToolCalls = integerValue(toolNameCoverage?.total_calls) ?? 0
+    const namedToolCalls = integerValue(toolNameCoverage?.named_calls) ?? 0
     const modelRows = buildRequestAggregates(db, filters, "provider, model")
     const agentRows = buildRequestAggregates(db, filters, "agent_name")
     const errorRows = db
@@ -2164,6 +2257,11 @@ export function createAnalyzerStore(
           (integerValue(row.input_size_capped_calls) ?? 0) +
           (integerValue(row.output_size_capped_calls) ?? 0),
       })),
+      toolNameCoverage: {
+        totalCalls: totalToolCalls,
+        namedCalls: namedToolCalls,
+        unnamedCalls: Math.max(0, totalToolCalls - namedToolCalls),
+      },
       errors: errorRows.map((row) => ({
         category: stringValue(row.error_category),
         occurrences: integerValue(row.occurrences) ?? 0,
@@ -2542,6 +2640,7 @@ export function createAnalyzerStore(
     }
   }
 
+  backfillToolNames()
   return {
     recordConfig,
     recordEvent,
@@ -3314,7 +3413,7 @@ export function createAnalyzerToolDefinitions(
     {
       name: "summary",
       description:
-        "Read aggregated Analyzer metrics for a period. Returns counts and observed token, cost, duration, tool, error, compaction, and delegation data.",
+        "Read aggregated Analyzer metrics for a period. Returns counts, observed token, cost, duration, tool, error, compaction, and delegation data, including tool-name coverage.",
       input: toolInputSchema(commonProperties),
       options: { namespace: "analyzer", codemode: false },
       execute: async (input, context) => {
