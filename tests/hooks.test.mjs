@@ -5,6 +5,7 @@ import test from "node:test"
 import hooksPlugin, {
   createHookRuntimeState,
   enabledHookEvents,
+  eventTypesForHooks,
   enqueueHooksForEvent,
   parseHooksYaml,
   runHooksForEvent,
@@ -34,6 +35,27 @@ hooks:
     () => parseHooksYaml("hooks:\n  stop:\n    - enabled: true\n      skills: [security-review]\n"),
     /Unsupported OpenCode V2 session event/,
   )
+  assert.throws(
+    () => parseHooksYaml("hooks:\n  session.status:\n    - enabled: true\n      prompt: Unsupported on OpenCode 2.4.x.\n"),
+    /Unsupported OpenCode V2 session event/,
+  )
+})
+
+test("maps session.idle hooks to the emitted completion event on OpenCode 2.4.x", () => {
+  const config = parseHooksYaml(`
+hooks:
+  session.idle:
+    - enabled: true
+      prompt: Ask the user how they are.
+`)
+
+  assert.deepEqual(eventTypesForHooks(config, "2.4.1"), [
+    "session.execution.succeeded",
+    "session.execution.failed",
+    "session.execution.interrupted",
+    "session.deleted",
+  ])
+  assert.ok(eventTypesForHooks(config, "2.5.0").includes("session.idle"))
 })
 
 test("supports multiple hooks for an event and OpenCode commands and agents", () => {
@@ -158,30 +180,9 @@ hooks:
   )
 })
 
-test("hook sessions use the configured OpenCode agent and return a synthetic report", async () => {
+test("hook actions run in the triggering session and keep agent mentions there", async () => {
   const calls = []
-  const ctx = {
-    location: { directory: "/project" },
-    session: {
-      get: async () => ({
-        id: "parent-session",
-        agent: "tech-lead",
-        location: { directory: "/project" },
-      }),
-      create: async (input) => {
-        calls.push(["create", input])
-        return { id: "hook-session" }
-      },
-      prompt: async (input) => calls.push(["prompt", input]),
-      command: async (input) => calls.push(["command", input]),
-      wait: async (input) => calls.push(["wait", input]),
-      context: async () => [{
-        info: { role: "assistant" },
-        parts: [{ type: "text", text: "Review complete." }],
-      }],
-      synthetic: async (input) => calls.push(["synthetic", input]),
-    },
-  }
+  const userMessages = []
   const config = parseHooksYaml(`
 hooks:
   session.idle:
@@ -189,130 +190,157 @@ hooks:
       skills: [security-review]
       agents: [reviewer]
       commands: [test]
+      prompt: Review the current changes.
 `)
+  const state = createHookRuntimeState()
+  const catalog = {
+    agents: new Set(["reviewer"]),
+    commands: new Set(["test"]),
+    skills: new Set(["security-review"]),
+  }
+  const ctx = {
+    app: { version: "2.4.1" },
+    location: { directory: "/project" },
+    session: {
+      prompt: async (input) => {
+        calls.push(["prompt", input])
+        userMessages.push({ type: "user", metadata: input.metadata })
+      },
+      command: async (input) => calls.push(["command", input]),
+      wait: async ({ sessionID }) => {
+        calls.push(["wait", sessionID])
+        const eventID = `generated-idle-${calls.filter(([type]) => type === "wait").length}`
+        const generatedIdle = await enqueueHooksForEvent(
+          ctx,
+          config,
+          { id: eventID, type: "session.execution.succeeded", data: { sessionID } },
+          state,
+          catalog,
+        )
+        assert.equal(generatedIdle, undefined)
+      },
+      context: async () => userMessages,
+    },
+  }
 
   await runHooksForEvent(
     ctx,
     config,
     { id: "event-1", type: "session.idle", data: { sessionID: "parent-session" } },
-    createHookRuntimeState(),
-    {
-      agents: new Set(["reviewer"]),
-      commands: new Set(["test"]),
-      skills: new Set(["security-review"]),
-    },
+    state,
+    catalog,
   )
 
-  const prompt = calls.find(([type]) => type === "prompt")[1]
-  assert.equal(prompt.sessionID, "hook-session")
-  assert.deepEqual(prompt.skills, [{ id: "security-review" }])
-  assert.match(prompt.text, /Run the configured OpenCode hook/)
   const command = calls.find(([type]) => type === "command")[1]
-  assert.equal(command.sessionID, "hook-session")
+  assert.equal(command.sessionID, "parent-session")
   assert.equal(command.name, "test")
-  assert.equal(command.text, "")
-  const report = calls.find(([type]) => type === "synthetic")[1]
-  assert.equal(report.sessionID, "parent-session")
-  assert.match(report.text, /Review complete\./)
-  assert.equal(report.metadata.opencodeSetupHooks, true)
+  assert.equal(command.text, "Review the current changes.")
+  const prompt = calls.find(([type]) => type === "prompt")[1]
+  assert.equal(prompt.sessionID, "parent-session")
+  assert.deepEqual(prompt.skills, [{ id: "security-review" }])
+  assert.deepEqual(prompt.agents, [{ name: "reviewer" }])
+  assert.equal(prompt.text, "@reviewer\n\nReview the current changes.")
+  assert.equal(prompt.metadata.opencodeSetupHooks.generated, true)
+  assert.equal(calls.filter(([type]) => type === "prompt").length, 1)
+  assert.equal(calls.some(([type]) => type === "create" || type === "synthetic"), false)
 })
 
 test("a prompt-only hook runs without Skills, commands, or configured agents", async () => {
   const calls = []
-  const ctx = {
-    location: { directory: "/project" },
-    session: {
-      get: async () => ({
-        id: "parent-session",
-        agent: "developer",
-        location: { directory: "/project" },
-      }),
-      create: async (input) => {
-        calls.push(["create", input])
-        return { id: "prompt-only-session" }
-      },
-      prompt: async (input) => calls.push(["prompt", input]),
-      command: async () => assert.fail("prompt-only hook must not run a command"),
-      wait: async () => {},
-      context: async () => [],
-      synthetic: async () => {},
-    },
-  }
+  const userMessages = []
   const config = parseHooksYaml(`
 hooks:
-  session.execution.failed:
+  session.idle:
     - enabled: true
-      prompt: Investigate the failed execution and report the likely cause.
-`)
+      prompt: Ask the user how they are.
+  `)
+  const state = createHookRuntimeState()
+  const catalog = { agents: new Set(), commands: new Set(), skills: new Set() }
+  const ctx = {
+    app: { version: "2.4.1" },
+    location: { directory: "/project" },
+    session: {
+      prompt: async (input) => {
+        calls.push(["prompt", input])
+        userMessages.push({ type: "user", metadata: input.metadata })
+      },
+      command: async () => assert.fail("prompt-only hook must not run a command"),
+      wait: async ({ sessionID }) => {
+        const generatedIdle = await enqueueHooksForEvent(
+          ctx,
+          config,
+          { id: "hook-generated-success", type: "session.execution.succeeded", data: { sessionID } },
+          state,
+          catalog,
+        )
+        assert.equal(generatedIdle, undefined)
+      },
+      context: async () => userMessages,
+    },
+  }
 
   await runHooksForEvent(
     ctx,
     config,
-    {
-      id: "failed-execution",
-      type: "session.execution.failed",
-      data: { sessionID: "parent-session" },
-    },
-    createHookRuntimeState(),
-    { agents: new Set(), commands: new Set(), skills: new Set() },
+    { id: "execution-event", type: "session.execution.succeeded", data: { sessionID: "parent-session" } },
+    state,
+    catalog,
   )
 
-  const child = calls.find(([type]) => type === "create")[1]
-  assert.equal(child.agent, "developer")
   const prompt = calls.find(([type]) => type === "prompt")[1]
-  assert.equal(prompt.text, "Investigate the failed execution and report the likely cause.")
+  assert.equal(prompt.sessionID, "parent-session")
+  assert.equal(prompt.text, "Ask the user how they are.")
   assert.equal(prompt.skills, undefined)
+  assert.equal(prompt.metadata.opencodeSetupHooks.generated, true)
+  assert.equal(calls.some(([type]) => type === "create" || type === "synthetic"), false)
 })
 
-test("does not run hook actions for its own report or generated session", async () => {
-  let createCount = 0
+test("skips hook-generated turns for every configured event type", async () => {
+  let promptCount = 0
   const ctx = {
     location: { directory: "/project" },
     session: {
-      get: async () => ({ id: "parent-session", agent: "tech-lead" }),
-      create: async () => {
-        createCount += 1
-        return { id: "hook-session" }
+      context: async () => [{
+        type: "user",
+        metadata: {
+          opencodeSetupHooks: {
+            generated: true,
+            event: "session.idle",
+          },
+        },
+      }],
+      prompt: async () => {
+        promptCount += 1
       },
-      prompt: async () => {},
-      command: async () => {},
+      command: async () => assert.fail("generated prompts must not dispatch commands"),
       wait: async () => {},
-      context: async () => [],
-      synthetic: async () => {},
     },
   }
   const config = parseHooksYaml(`
 hooks:
   session.idle:
     - enabled: true
-      agents: [reviewer]
+      prompt: Ask the user a follow-up question.
+  session.execution.succeeded:
+    - enabled: true
+      prompt: Ask the user another follow-up question.
 `)
+
   const state = createHookRuntimeState()
-  state.generatedSessions.add("hook-session")
-
-  await runHooksForEvent(
-    ctx,
-    config,
-    {
-      id: "generated-report",
-      type: "session.idle",
-      data: {
-        sessionID: "parent-session",
-        metadata: { opencodeSetupHooks: true },
-      },
-    },
-    state,
-    { agents: new Set(["reviewer"]), commands: new Set(), skills: new Set() },
-  )
-  await runHooksForEvent(
-    ctx,
-    config,
-    { id: "generated-session", type: "session.idle", data: { sessionID: "hook-session" } },
-    state,
-    { agents: new Set(["reviewer"]), commands: new Set(), skills: new Set() },
-  )
-
-  assert.equal(createCount, 0)
+  for (const [id, type] of [
+    ["generated-idle", "session.idle"],
+    ["generated-execution", "session.execution.succeeded"],
+  ]) {
+    const queued = await enqueueHooksForEvent(
+      ctx,
+      config,
+      { id, type, data: { sessionID: "parent-session" } },
+      state,
+      { agents: new Set(["reviewer"]), commands: new Set(), skills: new Set() },
+    )
+    assert.equal(queued, undefined)
+  }
+  assert.equal(promptCount, 0)
 })
 
 test("plugin config and README remain YAML-only and document OpenCode V2 events", async () => {
@@ -326,7 +354,13 @@ test("plugin config and README remain YAML-only and document OpenCode V2 events"
   assert.match(readme, /Each event value must be a YAML list/i)
   assert.match(readme, /Entries run sequentially in the order listed/i)
   assert.match(readme, /registered OpenCode command names/i)
-  assert.match(readme, /independent session/i)
+  assert.match(readme, /in the session that produced the\s+event/i)
+  assert.match(readme, /assistant's response appears there/i)
+  assert.match(readme, /prevent recursive hooks/i)
+  assert.match(
+    readme,
+    /For OpenCode 2\.4\.x,\s*a `session\.idle` hook is dispatched from\s*`session\.execution\.succeeded`/i,
+  )
   assert.match(readme, /A `prompt` can be the only field/i)
   assert.match(readme, /commands receive empty arguments/i)
   assert.match(readme, /strict YAML subset/i)
@@ -339,10 +373,13 @@ test("plugin config and README remain YAML-only and document OpenCode V2 events"
   assert.doesNotMatch(readme, /\bstop\b/)
   assert.match(setupPrompt, /Will you use the optional Hooks plugin/)
   assert.match(setupPrompt, /translate human-readable prose in all installed plugin files/i)
+  assert.match(normalizedPrompt, /send a prompt as a normal turn in the triggering session/)
+  assert.match(normalizedPrompt, /loop prevention for hook-generated turns/)
+  assert.match(normalizedPrompt, /On OpenCode 2\.4\.x, `session\.idle` configuration is dispatched on `session\.execution\.succeeded`/)
   assert.match(normalizedPrompt, /no duplicate event or hook-field keys, no anchors\/aliases\/tags, and single-line or `\|`\/`>` prompts/i)
   assert.match(normalizedPrompt, /queues events in order per session, caps concurrent hook processing at four sessions/)
   assert.match(normalizedPrompt, /Refresh Skills, commands, and agents before each dispatched hook event/)
-  assert.match(normalizedPrompt, /per-session event queuing\/backpressure and catalog refresh after additions\/removals/)
+  assert.match(normalizedPrompt, /per-session event queuing\/backpressure, catalog refresh after additions\/removals/)
   for (const event of SUPPORTED_EVENT_TYPES) {
     assert.ok(readme.includes(`\`${event}\``), `README documents ${event}`)
   }
@@ -384,25 +421,13 @@ test("hooks plugin is an opt-in V2 plugin with a YAML config file", () => {
 
 test("multiple hooks for one event run sequentially in YAML order", async () => {
   const calls = []
-  let childIndex = 0
   const ctx = {
     location: { directory: "/project" },
     session: {
-      get: async () => ({
-        id: "parent-session",
-        agent: "tech-lead",
-        location: { directory: "/project" },
-      }),
-      create: async (input) => {
-        calls.push(`create:${input.title}`)
-        childIndex += 1
-        return { id: `hook-session-${childIndex}` }
-      },
       prompt: async (input) => calls.push(`prompt:${input.text}`),
       command: async () => {},
       wait: async ({ sessionID }) => calls.push(`wait:${sessionID}`),
       context: async () => [],
-      synthetic: async ({ text }) => calls.push(`report:${text.split("\n")[0]}`),
     },
   }
   const config = parseHooksYaml(`
@@ -431,16 +456,18 @@ hooks:
   const promptTexts = calls
     .filter((call) => call.startsWith("prompt:"))
     .map((call) => call.slice("prompt:".length))
-  assert.deepEqual(promptTexts, ["First hook", "Second hook"])
-  assert.ok(calls.indexOf("report:OpenCode hook `session.idle` completed in session `hook-session-1`.") <
-    calls.indexOf("create:[Hooks] session.idle · reviewer"))
+  assert.deepEqual(promptTexts, ["First hook", "@reviewer\n\nSecond hook"])
+  assert.deepEqual(
+    calls.filter((call) => call.startsWith("wait:")),
+    ["wait:parent-session", "wait:parent-session"],
+  )
 })
 
 test("same-session events queue in order instead of being dropped while a hook is active", async () => {
   const calls = []
-  let childIndex = 0
   let markFirstWait
   let releaseFirstWait
+  let waitCount = 0
   const firstWaitStarted = new Promise((resolve) => {
     markFirstWait = resolve
   })
@@ -450,27 +477,17 @@ test("same-session events queue in order instead of being dropped while a hook i
   const ctx = {
     location: { directory: "/project" },
     session: {
-      get: async () => ({
-        id: "parent-session",
-        agent: "developer",
-        location: { directory: "/project" },
-      }),
-      create: async (input) => {
-        childIndex += 1
-        calls.push(`create:${input.title}`)
-        return { id: `hook-session-${childIndex}` }
-      },
       prompt: async ({ text }) => calls.push(`prompt:${text}`),
       command: async () => {},
       wait: async ({ sessionID }) => {
         calls.push(`wait:${sessionID}`)
-        if (sessionID === "hook-session-1") {
+        waitCount += 1
+        if (waitCount === 1) {
           markFirstWait()
           await firstWaitGate
         }
       },
       context: async () => [],
-      synthetic: async ({ text }) => calls.push(`report:${text.split("\n")[0]}`),
     },
   }
   const config = parseHooksYaml(`
@@ -498,20 +515,16 @@ hooks:
   )
   assert.ok(queued)
   assert.equal(state.pendingCount, 1)
-  assert.equal(childIndex, 1)
 
   releaseFirstWait()
   await Promise.all([firstRun, queued.done])
   assert.deepEqual(
-    calls.filter((call) => call.startsWith("create:")),
-    [
-      "create:[Hooks] session.idle · developer",
-      "create:[Hooks] session.idle · developer",
-    ],
-  )
-  assert.deepEqual(
     calls.filter((call) => call.startsWith("prompt:")),
     ["prompt:Inspect this event.", "prompt:Inspect this event."],
+  )
+  assert.deepEqual(
+    calls.filter((call) => call.startsWith("wait:")),
+    ["wait:parent-session", "wait:parent-session"],
   )
   assert.equal(state.seenEvents.has("queued-event-1"), true)
   assert.equal(state.seenEvents.has("queued-event-2"), true)
@@ -546,20 +559,10 @@ test("refreshes Skills, commands, and agents for each dispatched event", async (
       },
     },
     session: {
-      get: async () => ({
-        id: "parent-session",
-        agent: "tech-lead",
-        location: { directory: "/project" },
-      }),
-      create: async (input) => {
-        calls.push(["create", input])
-        return { id: "catalog-hook-session" }
-      },
       prompt: async (input) => calls.push(["prompt", input]),
       command: async (input) => calls.push(["command", input]),
       wait: async () => {},
       context: async () => [],
-      synthetic: async () => {},
     },
   }
   const config = parseHooksYaml(`
@@ -578,7 +581,7 @@ hooks:
     { id: "catalog-event-1", type: "session.idle", data: { sessionID: "parent-session" } },
     state,
   )
-  assert.equal(calls.some(([type]) => type === "create"), false)
+  assert.equal(calls.length, 0)
 
   catalogAvailable = true
   await runHooksForEvent(
@@ -591,7 +594,9 @@ hooks:
   assert.equal(agentReads, 2)
   assert.equal(commandReads, 2)
   assert.equal(skillReads, 2)
-  assert.equal(calls.find(([type]) => type === "create")[1].agent, "reviewer")
+  assert.equal(calls.find(([type]) => type === "command")[1].sessionID, "parent-session")
+  assert.equal(calls.find(([type]) => type === "prompt")[1].sessionID, "parent-session")
+  assert.deepEqual(calls.find(([type]) => type === "prompt")[1].agents, [{ name: "reviewer" }])
   assert.deepEqual(
     calls.find(([type]) => type === "prompt")[1].skills,
     [{ id: "manual-review" }],

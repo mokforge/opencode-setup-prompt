@@ -27,8 +27,8 @@ hooks:
       prompt: Run the project's configured test command.
 ```
 
-Entries run sequentially in the order listed. The next entry starts after the
-previous entry's command/agent session has finished.
+Entries run sequentially in the order listed, in the session that produced the
+event. The next entry starts after the previous command or agent turn finishes.
 
 The parser intentionally supports a strict YAML subset: two-space indentation,
 one top-level `hooks` mapping, event-to-list mappings, hook mappings, scalar
@@ -42,11 +42,13 @@ Supported fields on each hook:
 - `enabled`: set to `true` to activate the hook. It defaults to `false`.
 - `skills`: installed OpenCode Skill IDs to attach to the hook prompt.
 - `commands`: registered OpenCode command names (without `/`). When present,
-  `prompt` is passed as the command text/arguments.
-- `agents`: OpenCode agent IDs. Each ID runs in its own independent session.
+  `prompt` is passed as the command text/arguments and the command runs in the
+  triggering session.
+- `agents`: OpenCode agent IDs to @mention in the hook prompt. The triggering
+  session keeps its selected agent; that agent can delegate to the mentioned
+  agents using normal OpenCode behavior.
 - `prompt`: optional task text for the configured Skills, command, or agent.
-  When omitted, the plugin asks the selected agent to run the hook and return
-  a concise report.
+  When omitted, the plugin supplies a default task prompt.
 
 A `prompt` can be the only field besides `enabled`; it runs with the triggering
 session's agent even when `skills`, `commands`, and `agents` are omitted. The
@@ -54,10 +56,16 @@ opposite also works: configure Skills, commands, and/or agents without a
 `prompt`. The plugin supplies a default task prompt for Skills/agents, while
 commands receive empty arguments.
 
+Prompt actions are normal user turns in the triggering session: the prompt is
+visible in its history and the assistant's response appears there. The plugin
+marks that message with metadata and ignores events from its own generated turn
+to prevent recursive hooks. This metadata is not sent to the model.
+
 Commands are registered OpenCode commands, not arbitrary shell strings. They
-use OpenCode's normal session and permission behavior. Agents use their normal
-OpenCode permissions. The plugin itself does not spawn shell processes or edit
-project files.
+run in the triggering session and use OpenCode's normal permission behavior.
+Agent mentions do not switch the session's selected agent; the active agent
+decides whether to delegate. The plugin itself does not spawn shell processes
+or edit project files.
 
 The starter YAML keeps hooks disabled. After editing `hooks.yml`, reload
 OpenCode with `/reload`. Unknown Skills, commands, or agents are skipped and
@@ -123,7 +131,6 @@ session ID are not supported because hook actions need a triggering session.
 | `session.revert.staged`          | A session revert is staged.                      |
 | `session.revert.cleared`         | A staged revert is cleared.                      |
 | `session.revert.committed`       | A staged revert is committed.                    |
-| `session.status`                 | The session status changes.                      |
 
 High-volume streaming events (`session.text.delta`,
 `session.reasoning.delta`, `session.step.streamed`,
@@ -133,16 +140,20 @@ every streamed update could create excessive sessions and model calls.
 `session.deleted` is excluded because its session is no longer available for a
 follow-up.
 
+For OpenCode 2.4.x, a `session.idle` hook is dispatched from
+`session.execution.succeeded`, the completion event exposed by that runtime.
+If both event keys are configured, both groups run for the same successful turn.
+
 ## How a hook runs
 
-The plugin creates a separate OpenCode session at the triggering session's
-location. It applies the configured Skill IDs, command names, or agent IDs in
-that session, waits for it to finish, and posts the result to the original
-session as a synthetic message. The original session is not resumed. Plugin-
-created sessions and reports are excluded from hook dispatch to avoid loops.
+The plugin runs each hook in the triggering session. It attaches configured
+Skills, invokes registered commands, and sends the configured prompt as a normal
+turn. The assistant's reply is part of the same conversation; no child session
+or synthetic summary is created. Metadata on hook-generated prompts and a
+per-session guard for command runs prevent recursive dispatch.
 
 Enabling a hook can create model requests through configured Skills, commands,
-and agents. Their prompts, project files they read, and responses are subject
-to the selected model provider's normal data handling. Keep only trusted IDs
-in this project-local configuration; the plugin itself does not send data to
-another service.
+and agent mentions. Their prompts, project files they read, and responses are
+subject to the selected model provider's normal data handling. Keep only trusted
+IDs in this project-local configuration; the plugin itself does not send data
+to another service.

@@ -6,7 +6,6 @@ const HOOK_METADATA_KEY = "opencodeSetupHooks"
 const MAX_CONFIG_BYTES = 64 * 1024
 const MAX_CONFIG_LINES = 2_000
 const MAX_REMEMBERED_IDS = 2_000
-const MAX_REPORT_LENGTH = 8_000
 const MAX_ACTIVE_HOOKS = 4
 const MAX_PENDING_HOOK_EVENTS = 256
 const MAX_PENDING_PER_SESSION = 32
@@ -58,7 +57,6 @@ export const SUPPORTED_EVENT_TYPES = [
   "session.revert.staged",
   "session.revert.cleared",
   "session.revert.committed",
-  "session.status",
 ] as const
 
 const SUPPORTED_EVENT_SET = new Set<string>(SUPPORTED_EVENT_TYPES)
@@ -89,14 +87,8 @@ interface HookEvent {
   location?: unknown
 }
 
-interface HookSession {
-  id?: unknown
-  agent?: unknown
-  location?: unknown
-}
-
 interface HookPluginContext {
-  location: { directory?: string }
+  app?: { version?: string }
   agent: { list(): Promise<unknown> }
   command: { list(): Promise<unknown> }
   skill: { list(): Promise<unknown> }
@@ -107,30 +99,24 @@ interface HookPluginContext {
     }): AsyncIterable<unknown>
   }
   session: {
-    get(input: { sessionID: string }): Promise<unknown>
-    create(input: {
-      agent?: string
-      location?: { directory: string }
-      title: string
-      metadata: Record<string, unknown>
-    }): Promise<unknown>
     context(input: { sessionID: string }): Promise<unknown>
     prompt(input: {
       sessionID: string
       text: string
       skills?: Array<{ id: string }>
+      agents?: Array<{ name: string }>
+      metadata?: Record<string, unknown>
+      delivery?: "steer" | "queue"
     }): Promise<unknown>
     command(input: {
       sessionID: string
       name: string
       text: string
+      skills?: Array<{ id: string }>
+      agents?: Array<{ name: string }>
+      delivery?: "steer" | "queue"
     }): Promise<unknown>
     wait(input: { sessionID: string }): Promise<unknown>
-    synthetic(input: {
-      sessionID: string
-      text: string
-      metadata: Record<string, unknown>
-    }): Promise<unknown>
   }
 }
 
@@ -141,8 +127,7 @@ export interface HookCatalog {
 }
 
 export interface HookRuntimeState {
-  generatedSessions: Set<string>
-  generatedSessionOrder: string[]
+  hookGeneratedRuns: Map<string, number>
   seenEvents: Set<string>
   seenEventOrder: string[]
   queuedEventIDs: Set<string>
@@ -589,8 +574,7 @@ export function parseHooksYaml(source: string): HooksConfig {
 
 export function createHookRuntimeState(): HookRuntimeState {
   return {
-    generatedSessions: new Set(),
-    generatedSessionOrder: [],
+    hookGeneratedRuns: new Map(),
     seenEvents: new Set(),
     seenEventOrder: [],
     queuedEventIDs: new Set(),
@@ -617,6 +601,49 @@ export function enabledHookEvents(config: HooksConfig): string[] {
   return Object.entries(config.hooks)
     .filter(([, hooks]) => hooks.some((hook) => hook.enabled && hasActions(hook)))
     .map(([event]) => event)
+}
+
+function usesExecutionSuccessForIdle(version: string | undefined): boolean {
+  return /^v?2\.4\./.test(version ?? "")
+}
+
+export function eventTypesForHooks(
+  config: HooksConfig,
+  version?: string,
+): string[] {
+  const useExecutionSuccess = usesExecutionSuccessForIdle(version)
+  const activeEvents = enabledHookEvents(config).map((event) =>
+    useExecutionSuccess && event === "session.idle"
+      ? "session.execution.succeeded"
+      : event,
+  )
+  return [...new Set([
+    ...activeEvents,
+    "session.execution.succeeded",
+    "session.execution.failed",
+    "session.execution.interrupted",
+    "session.deleted",
+  ])]
+}
+
+function hookGroupsForEvent(
+  ctx: HookPluginContext,
+  config: HooksConfig,
+  eventType: string,
+): Array<{ configuredEvent: string; hooks: HookDefinition[] }> {
+  // OpenCode 2.4.x publishes completed turns as execution.succeeded rather than idle.
+  const configuredEvents =
+    usesExecutionSuccessForIdle(stringValue(ctx.app?.version) ?? undefined) &&
+      eventType === "session.execution.succeeded"
+      ? ["session.execution.succeeded", "session.idle"]
+      : [eventType]
+  return configuredEvents
+    .map((configuredEvent) => ({
+      configuredEvent,
+      hooks:
+        config.hooks[configuredEvent]?.filter((hook) => hook.enabled && hasActions(hook)) ?? [],
+    }))
+    .filter(({ hooks }) => hooks.length > 0)
 }
 
 function setFromResponse(value: unknown, key: "id" | "name"): Set<string> {
@@ -705,8 +732,8 @@ function available(id: string, values: Set<string> | null): boolean {
 function eventHasHookMetadata(event: HookEvent): boolean {
   const data = record(event.data)
   const metadata = record(data.metadata)
-  const sessionMetadata = record(metadata[HOOK_METADATA_KEY])
-  return metadata[HOOK_METADATA_KEY] === true || sessionMetadata.generated === true
+  const hookMetadata = record(metadata[HOOK_METADATA_KEY])
+  return metadata[HOOK_METADATA_KEY] === true || hookMetadata.generated === true
 }
 
 function rememberBounded(set: Set<string>, order: string[], id: string): void {
@@ -719,56 +746,119 @@ function rememberBounded(set: Set<string>, order: string[], id: string): void {
   }
 }
 
-function rememberGeneratedSession(state: HookRuntimeState, sessionID: string): void {
-  if (state.generatedSessions.has(sessionID)) return
-  state.generatedSessions.add(sessionID)
-  state.generatedSessionOrder.push(sessionID)
-  while (state.generatedSessionOrder.length > MAX_REMEMBERED_IDS) {
-    const oldest = state.generatedSessionOrder.shift()
-    if (oldest) state.generatedSessions.delete(oldest)
+function markHookGeneratedRun(state: HookRuntimeState, sessionID: string): void {
+  state.hookGeneratedRuns.set(
+    sessionID,
+    (state.hookGeneratedRuns.get(sessionID) ?? 0) + 1,
+  )
+}
+
+function forgetHookGeneratedRun(state: HookRuntimeState, sessionID: string): void {
+  const remaining = (state.hookGeneratedRuns.get(sessionID) ?? 1) - 1
+  if (remaining <= 0) state.hookGeneratedRuns.delete(sessionID)
+  else state.hookGeneratedRuns.set(sessionID, remaining)
+}
+
+function suppressHookGeneratedEvent(
+  state: HookRuntimeState,
+  eventType: string,
+  sessionID: string,
+): boolean {
+  const count = state.hookGeneratedRuns.get(sessionID)
+  if (!count) return false
+  if (
+    eventType === "session.execution.succeeded" ||
+    eventType === "session.execution.failed" ||
+    eventType === "session.execution.interrupted"
+  ) {
+    forgetHookGeneratedRun(state, sessionID)
   }
+  return true
+}
+
+async function lastUserMessageIsHookGenerated(
+  ctx: HookPluginContext,
+  sessionID: string,
+): Promise<boolean> {
+  try {
+    const messages = responseArray(await ctx.session.context({ sessionID }))
+    for (let index = messages.length - 1; index >= 0; index -= 1) {
+      const message = record(messages[index])
+      const info = record(message.info)
+      const role =
+        stringValue(message.type) ??
+        stringValue(info.type) ??
+        stringValue(message.role) ??
+        stringValue(info.role)
+      if (role !== "user") continue
+
+      const metadata = record(message.metadata ?? info.metadata)
+      const hookMetadata = record(metadata[HOOK_METADATA_KEY])
+      return metadata[HOOK_METADATA_KEY] === true || hookMetadata.generated === true
+    }
+  } catch (error) {
+    console.warn(`[Hooks] Could not inspect the latest message in session ${sessionID}.`, error)
+  }
+  return false
 }
 
 function defaultPrompt(eventType: string, skills: string[]): string {
   const attached =
     skills.length > 0 ? ` Use the attached Skills: ${skills.join(", ")}.` : ""
-  return `Run the configured OpenCode hook for event "${eventType}". Inspect the relevant project state as needed.${attached} Return a concise report to the triggering session. Do not modify project files unless the selected agent or command's normal instructions and permissions allow it.`
+  return `Run the configured OpenCode hook for event "${eventType}". Inspect the relevant project state as needed.${attached} Return a concise response in this conversation. Do not modify project files unless the active agent's normal instructions and permissions allow it.`
 }
 
-function sessionLocation(
-  session: HookSession,
-  pluginLocation: { directory?: string },
-): { directory: string } | undefined {
-  const sessionDirectory = stringValue(record(session.location).directory)
-  const directory = sessionDirectory ?? stringValue(pluginLocation.directory)
-  return directory ? { directory } : undefined
+function mentionAgent(prompt: string, agentID: string | undefined): string {
+  return agentID ? `@${agentID}\n\n${prompt}` : prompt
 }
 
-function assistantReply(value: unknown): string {
-  const messages = responseArray(value)
-  for (let messageIndex = messages.length - 1; messageIndex >= 0; messageIndex -= 1) {
-    const message = record(messages[messageIndex])
-    const info = record(message.info)
-    if (info.role !== "assistant" && message.role !== "assistant") continue
-    const parts = Array.isArray(message.parts)
-      ? message.parts
-      : Array.isArray(info.parts)
-        ? info.parts
-        : []
-    const text = parts
-      .filter((part) => record(part).type === "text")
-      .map((part) => stringValue(record(part).text))
-      .filter((part): part is string => part !== null)
-      .join("\n")
-    if (text) return text.slice(0, MAX_REPORT_LENGTH)
+async function runGeneratedCommand(
+  ctx: HookPluginContext,
+  sessionID: string,
+  command: string,
+  text: string,
+  state: HookRuntimeState,
+): Promise<void> {
+  // The command API has no message-metadata input, so suppress its events until idle.
+  markHookGeneratedRun(state, sessionID)
+  try {
+    await ctx.session.command({ sessionID, name: command, text, delivery: "queue" })
+    await ctx.session.wait({ sessionID })
+  } catch (error) {
+    forgetHookGeneratedRun(state, sessionID)
+    throw error
   }
-  return ""
+}
+
+async function runHookPrompt(
+  ctx: HookPluginContext,
+  sessionID: string,
+  sourceEvent: string,
+  prompt: string,
+  agentID: string | undefined,
+  skills: string[],
+): Promise<void> {
+  await ctx.session.prompt({
+    sessionID,
+    text: mentionAgent(prompt, agentID),
+    ...(skills.length > 0 ? { skills: skills.map((id) => ({ id })) } : {}),
+    ...(agentID ? { agents: [{ name: agentID }] } : {}),
+    // Stored with the user message, but not included in model context.
+    metadata: {
+      [HOOK_METADATA_KEY]: {
+        generated: true,
+        triggeringSessionID: sessionID,
+        event: sourceEvent,
+      },
+    },
+    delivery: "queue",
+  })
+  await ctx.session.wait({ sessionID })
 }
 
 async function runHookTarget(
   ctx: HookPluginContext,
-  parentSessionID: string,
-  parent: HookSession,
+  sessionID: string,
   sourceEvent: string,
   hook: HookDefinition,
   agentID: string | undefined,
@@ -776,58 +866,14 @@ async function runHookTarget(
   commands: string[],
   state: HookRuntimeState,
 ): Promise<void> {
-  const location = sessionLocation(parent, ctx.location)
-  const titleAgent = agentID ? ` · ${agentID}` : ""
-  const childValue = await ctx.session.create({
-    ...(agentID ? { agent: agentID } : {}),
-    ...(location ? { location } : {}),
-    title: `[Hooks] ${sourceEvent}${titleAgent}`,
-    metadata: {
-      [HOOK_METADATA_KEY]: {
-        generated: true,
-        parentSessionID,
-        event: sourceEvent,
-      },
-    },
-  })
-  const child = record(unwrap(childValue))
-  const childSessionID = stringValue(child.id)
-  if (!childSessionID) throw new Error("OpenCode did not return an ID for the hook session.")
-  rememberGeneratedSession(state, childSessionID)
-
   const prompt = hook.prompt?.trim() || defaultPrompt(sourceEvent, skills)
   for (const command of commands) {
-    await ctx.session.command({
-      sessionID: childSessionID,
-      name: command,
-      text: hook.prompt?.trim() ?? "",
-    })
-    await ctx.session.wait({ sessionID: childSessionID })
+    await runGeneratedCommand(ctx, sessionID, command, hook.prompt?.trim() ?? "", state)
   }
 
   if (skills.length > 0 || commands.length === 0 || hook.agents.length > 0) {
-    await ctx.session.prompt({
-      sessionID: childSessionID,
-      text: prompt,
-      ...(skills.length > 0 ? { skills: skills.map((id) => ({ id })) } : {}),
-    })
-    await ctx.session.wait({ sessionID: childSessionID })
+    await runHookPrompt(ctx, sessionID, sourceEvent, prompt, agentID, skills)
   }
-
-  const reply = assistantReply(await ctx.session.context({ sessionID: childSessionID }))
-  const report = [
-    `OpenCode hook \`${sourceEvent}\` completed in session \`${childSessionID}\`${titleAgent}.`,
-    reply || "No assistant text was returned; inspect the hook session for details.",
-  ].join("\n\n")
-  await ctx.session.synthetic({
-    sessionID: parentSessionID,
-    text: report,
-    metadata: {
-      [HOOK_METADATA_KEY]: true,
-      event: sourceEvent,
-      childSessionID,
-    },
-  })
 }
 
 async function executeHooksForEvent(
@@ -843,14 +889,10 @@ async function executeHooksForEvent(
   const data = record(event.data)
   const sessionID = stringValue(data.sessionID)
 
-  if (eventType === "session.deleted") {
-    if (sessionID) state.generatedSessions.delete(sessionID)
-    return
-  }
-  if (!sessionID || eventHasHookMetadata(event) || state.generatedSessions.has(sessionID)) return
+  if (!sessionID || eventHasHookMetadata(event)) return
 
-  const hooks = config.hooks[eventType]?.filter((hook) => hook.enabled && hasActions(hook))
-  if (!hooks?.length) return
+  const hookGroups = hookGroupsForEvent(ctx, config, eventType)
+  if (hookGroups.length === 0) return
 
   const eventID = stringValue(event.id)
   if (eventID) {
@@ -859,59 +901,50 @@ async function executeHooksForEvent(
   }
 
   const currentCatalog = catalog ?? await loadHookCatalog(ctx)
-  let parent: HookSession
-  try {
-    parent = record(unwrap(await ctx.session.get({ sessionID }))) as HookSession
-  } catch {
-    console.warn(`[Hooks] Skipped ${eventType}; session ${sessionID} is no longer available.`)
-    return
-  }
+  for (const { configuredEvent, hooks } of hookGroups) {
+    for (const hook of hooks) {
+      const skills = hook.skills.filter((id) => {
+        const exists = available(id, currentCatalog.skills)
+        if (!exists) console.warn(`[Hooks] Skill "${id}" is not available; skipping it.`)
+        return exists
+      })
+      const commands = hook.commands.filter((name) => {
+        const exists = available(name, currentCatalog.commands)
+        if (!exists) console.warn(`[Hooks] OpenCode command "${name}" is not available; skipping it.`)
+        return exists
+      })
+      const agents = hook.agents.filter((id) => {
+        const exists = available(id, currentCatalog.agents)
+        if (!exists) console.warn(`[Hooks] OpenCode agent "${id}" is not available; skipping it.`)
+        return exists
+      })
 
-  const parentAgent = stringValue(parent.agent) ?? undefined
-  for (const hook of hooks) {
-    const skills = hook.skills.filter((id) => {
-      const exists = available(id, currentCatalog.skills)
-      if (!exists) console.warn(`[Hooks] Skill "${id}" is not available; skipping it.`)
-      return exists
-    })
-    const commands = hook.commands.filter((name) => {
-      const exists = available(name, currentCatalog.commands)
-      if (!exists) console.warn(`[Hooks] OpenCode command "${name}" is not available; skipping it.`)
-      return exists
-    })
-    const agents = hook.agents.filter((id) => {
-      const exists = available(id, currentCatalog.agents)
-      if (!exists) console.warn(`[Hooks] OpenCode agent "${id}" is not available; skipping it.`)
-      return exists
-    })
+      if (hook.agents.length > 0 && agents.length === 0) continue
+      if (
+        skills.length === 0 &&
+        commands.length === 0 &&
+        agents.length === 0 &&
+        !hook.prompt?.trim()
+      ) {
+        continue
+      }
 
-    if (hook.agents.length > 0 && agents.length === 0) continue
-    if (
-      skills.length === 0 &&
-      commands.length === 0 &&
-      agents.length === 0 &&
-      !hook.prompt?.trim()
-    ) {
-      continue
-    }
-
-    const targets: Array<string | undefined> =
-      hook.agents.length > 0 ? agents : [parentAgent]
-    for (const agentID of targets) {
-      try {
-        await runHookTarget(
-          ctx,
-          sessionID,
-          parent,
-          eventType,
-          { ...hook, agents },
-          agentID,
-          skills,
-          commands,
-          state,
-        )
-      } catch (error) {
-        console.warn(`[Hooks] Hook for ${eventType} failed.`, error)
+      const targets: Array<string | undefined> = hook.agents.length > 0 ? agents : [undefined]
+      for (const agentID of targets) {
+        try {
+          await runHookTarget(
+            ctx,
+            sessionID,
+            configuredEvent,
+            { ...hook, agents },
+            agentID,
+            skills,
+            commands,
+            state,
+          )
+        } catch (error) {
+          console.warn(`[Hooks] Hook for ${configuredEvent} failed.`, error)
+        }
       }
     }
   }
@@ -934,22 +967,34 @@ export async function enqueueHooksForEvent(
   if (!eventType) return undefined
   const data = record(event.data)
   const sessionID = stringValue(data.sessionID)
-
-  if (eventType === "session.deleted") {
-    if (sessionID) state.generatedSessions.delete(sessionID)
-    return undefined
-  }
-  if (!sessionID || eventHasHookMetadata(event) || state.generatedSessions.has(sessionID)) {
-    return undefined
-  }
-  const hooks = config.hooks[eventType]?.filter((hook) => hook.enabled && hasActions(hook))
-  if (!hooks?.length) return undefined
-
   const eventID = stringValue(event.id)
+
   if (
     eventID &&
     (state.seenEvents.has(eventID) || state.queuedEventIDs.has(eventID))
   ) {
+    return undefined
+  }
+
+  if (eventType === "session.deleted") {
+    if (sessionID) state.hookGeneratedRuns.delete(sessionID)
+    return undefined
+  }
+  if (!sessionID || eventHasHookMetadata(event)) {
+    return undefined
+  }
+  if (suppressHookGeneratedEvent(state, eventType, sessionID)) {
+    if (eventID) rememberBounded(state.seenEvents, state.seenEventOrder, eventID)
+    return undefined
+  }
+  const hookGroups = hookGroupsForEvent(ctx, config, eventType)
+  if (hookGroups.length === 0) return undefined
+
+  if (
+    typeof ctx.session.context === "function" &&
+    await lastUserMessageIsHookGenerated(ctx, sessionID)
+  ) {
+    if (eventID) rememberBounded(state.seenEvents, state.seenEventOrder, eventID)
     return undefined
   }
 
@@ -1047,7 +1092,7 @@ export default {
 
     const state = createHookRuntimeState()
     const controller = new AbortController()
-    const types = [...new Set([...activeEvents, "session.created", "session.deleted"])]
+    const types = eventTypesForHooks(config, stringValue(ctx.app?.version) ?? undefined)
     const subscription = (async () => {
       try {
         for await (const event of ctx.event.subscribe({

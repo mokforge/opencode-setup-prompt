@@ -34,4 +34,4 @@ Its database is `.opencode/plugins/analyzer/data.sqlite`. It does not store prom
 
 Install interactively by choosing **Yes**, or explicitly request `Install Hooks.` in unattended setup. Configuration and plugin files live in `.opencode/plugins/hooks/`.
 
-Hooks are disabled by default. Configure events and actions in `hooks.yml`, then set `enabled: true`; reload OpenCode with `/reload`. Hooks can invoke installed Skills, registered commands, or agents. They do not run arbitrary shell commands or add agent permissions.
+Hooks are disabled by default. Configure events and actions in `hooks.yml`, then set `enabled: true`; reload OpenCode with `/reload`. Hook prompts and commands run in the triggering session, so their turns appear in the same conversation. On OpenCode 2.4.x, `session.idle` hooks are dispatched from `session.execution.succeeded`. Hook-generated turns are marked to prevent recursive dispatch. Hooks can attach Skills and mention agents; they do not run arbitrary shell commands or add agent permissions.
