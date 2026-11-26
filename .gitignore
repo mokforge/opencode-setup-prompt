@@ -3,5 +3,7 @@
 __pycache__/
 *.py[cod]
 .venv/
-.opencode/plugins/analyzer/data.sqlite
-.opencode/plugins/analyzer/data.sqlite-*
+/.opencode/plugins/analyzer/data.sqlite
+/.opencode/plugins/analyzer/data.sqlite-shm
+/.opencode/plugins/analyzer/data.sqlite-wal
+/.opencode/plugins/analyzer/data.sqlite-*
